@@ -1,0 +1,8 @@
+﻿reaction_id,reactant_id,product_id,condition,reaction_type,memo
+rxn_001,cmp_006,cmp_001,金属ナトリウム,置換,
+rxn_002,cmp_010,cmp_006,還元,還元,
+rxn_003,cmp_007,cmp_006,触媒：PdCl2、CuCl2,酸化,ヘキストワッカー法
+rxn_004,cmp_006,cmp_010,酸化、ニクロム酸カリウム,酸化,
+rxn_005,cmp_010,cmp_018,酸化、ニクロム酸カリウム,酸化,
+rxn_006,cmp_022,cmp_075,濃硫酸＋濃硝酸,ニトロ化,
+rxn_007,cmp_075,cmp_081,濃塩酸＋Sn,還元,Snの代わりにFeでもOK

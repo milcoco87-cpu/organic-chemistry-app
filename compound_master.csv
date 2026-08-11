@@ -1,0 +1,96 @@
+compound_id,name_ja,name_en
+cmp_001,ナトリウムエトキシド,sodium ethoxide
+cmp_002,ジエチルエーテル,diethyl ether
+cmp_003,エタン,ethane
+cmp_004,クロロエタン,chloroethane
+cmp_005,"1,2-ジブロモエタン","1,2-dibromoethane"
+cmp_006,エタノール,ethanol
+cmp_007,エチレン,ethene
+cmp_008,ポリエチレン,polyethylene
+cmp_009,"1,2-ジクロロエタン","1,2-dichloroethane"
+cmp_010,アセトアルデヒド,acetaldehyde
+cmp_011,塩化ビニル,vinyl chloride
+cmp_012,ポリ塩化ビニル,polyvinyl chloride
+cmp_013,酢酸エチル,ethyl acetate
+cmp_014,ビニルアルコール,vinyl alcohol
+cmp_015,アクリロニトリル,acrylonitrile
+cmp_016,ポリアクリロニトリル,polyacrylonitrile
+cmp_017,酢酸ナトリウム,sodium acetate
+cmp_018,酢酸,acetic acid
+cmp_019,アセチレン,acetylene
+cmp_020,酢酸ビニル,vinyl acetate
+cmp_021,ポリ酢酸ビニル,polyvinyl acetate
+cmp_022,ベンゼン,benzene
+cmp_023,プロペン（プロピレン）,propene
+cmp_024,ポリプロペン（ポリプロピレン）,polypropylene
+cmp_025,クメン,cumene
+cmp_026,2-プロパノール,2-propanol
+cmp_027,1-プロパノール,1-propanol
+cmp_028,無水酢酸,acetic anhydride
+cmp_029,クメンヒドロペルオキシド,cumene hydroperoxide
+cmp_030,フェノール,phenol
+cmp_031,酢酸カルシウム,calcium acetate
+cmp_032,アセトン,acetone
+cmp_033,プロピオンアルデヒド,propionaldehyde
+cmp_034,プロピオン酸,propionic acid
+cmp_035,ギ酸,formic acid
+cmp_036,ギ酸エチル,ethyl formate
+cmp_037,マレイン酸,maleic acid
+cmp_038,フマル酸,fumaric acid
+cmp_039,コハク酸,succinic acid
+cmp_040,無水マレイン酸,maleic anhydride
+cmp_041,カーバイド（炭化カルシウム）,calcium carbide
+cmp_042,ホルムアルデヒド,formaldehyde
+cmp_043,メタノール,methanol
+cmp_044,メタン,methane
+cmp_045,クロロメタン,chloromethane
+cmp_046,ジクロロメタン,dichloromethane
+cmp_047,クロロホルム（トリクロロメタン）,chloroform
+cmp_048,四塩化炭素（テトラクロロメタン）,carbon tetrachloride
+cmp_049,エチレンオキシド,ethylene oxide
+cmp_050,ポリエチレンテレフタラート（PET）,polyethylene terephthalate
+cmp_051,エチレングリコール,ethylene glycol
+cmp_052,ポリビニルアルコール,polyvinyl alcohol
+cmp_053,ビニロン,vinylon
+cmp_054,ヨードホルム,iodoform
+cmp_055,シクロプロパン,cyclopropane
+cmp_056,"1,3-ジブロモプロパン","1,3-dibromopropane"
+cmp_057,グリセリン,glycerol
+cmp_058,油脂,fats and oils
+cmp_059,ベンジルアルコール,benzyl alcohol
+cmp_060,エチルベンゼン,ethylbenzene
+cmp_061,スチレン,styrene
+cmp_062,ポリスチレン,polystyrene
+cmp_063,ベンズアルデヒド,benzaldehyde
+cmp_064,安息香酸,benzoic acid
+cmp_065,ナフタレン,naphthalene
+cmp_066,無水フタル酸,phthalic anhydride
+cmp_067,"2,4,6-トリニトロトルエン（TNT）","2,4,6-trinitrotoluene"
+cmp_068,トルエン,toluene
+cmp_069,o-キシレン,o-xylene
+cmp_070,フタル酸,phthalic acid
+cmp_071,シクロヘキサン,cyclohexane
+cmp_072,ヘキサクロロシクロヘキサン,hexachlorocyclohexane
+cmp_073,m-キシレン,m-xylene
+cmp_074,イソフタル酸,isophthalic acid
+cmp_075,ニトロベンゼン,nitrobenzene
+cmp_076,p-キシレン,p-xylene
+cmp_077,テレフタル酸,terephthalic acid
+cmp_078,アニリン塩酸塩,aniline hydrochloride
+cmp_079,ベンゼンスルホン酸,benzenesulfonic acid
+cmp_080,クロロベンゼン,chlorobenzene
+cmp_081,アニリン,aniline
+cmp_082,ナトリウムフェノキシド,sodium phenoxide
+cmp_083,サリチル酸ナトリウム,sodium salicylate
+cmp_084,"2,4,6-トリブロモフェノール","2,4,6-tribromophenol"
+cmp_085,サリチル酸,salicylic acid
+cmp_086,塩化ベンゼンジアゾニウム,benzenediazonium chloride
+cmp_087,ピクリン酸,picric acid
+cmp_088,アセトアニリド,acetanilide
+cmp_089,p-フェニルアゾフェノール,p-hydroxyazobenzene
+cmp_090,酢酸フェニル,phenyl acetate
+cmp_091,アセチルサリチル酸,acetylsalicylic acid
+cmp_092,サリチル酸メチル,methyl salicylate
+cmp_093,o-クレゾール,o-cresol
+cmp_094,安息香酸エチル,ethyl benzoate
+cmp_095,ベンゼンスルホン酸ナトリウム,sodium benzenesulfonate
