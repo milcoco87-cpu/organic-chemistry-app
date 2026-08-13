@@ -16,14 +16,213 @@ chart_map_df = pd.read_csv("compound_chart_map.csv")
 # =========================
 # 読み込み確認
 # =========================
-st.set_page_config(layout="wide")
+st.set_page_config(
+    layout="wide",
+    )
+
+# =========================
+# 画面全体のデザイン
+# =========================
+st.markdown(
+    """
+    <style>
+    h1 {
+        font-size: 40px;
+        text-align: center;
+        color: #ffffff;
+        padding: 10px;
+        margin: 1px;
+        background-color: #000000;
+    }
+    div[data-testid="stSelectbox"] label p {
+        font-size: 20px !important;
+        font-weight: 600 !important;
+    }
+    div[data-testid="stButton"] button {
+        min-height: 44px;
+        padding: 8px 18px;
+        border-radius: 8px;
+    }
+    div[data-testid="stButton"] button p {
+        font-size: 18px !important;
+        font-weight: 600 !important;
+    }
+
+    div[class*="st-key-compound_"]{
+        background-color: #FFFFFF;
+        border-width: 10px;
+        border: 3px solid #555555;
+        border-radius: 10px !important;
+    }
+
+
+    div[class*="st-key-btn_good"] button {
+        border: 3px solid #2e7d32 !important;
+        background-color: #e8f5e9 !important;
+        color: #1b5e20 !important;
+    }
+    div[class*="st-key-btn_mid"] button {
+        border: 3px solid #ed8b00 !important;
+        background-color: #fff8e1 !important;
+        color: #8a4f00 !important;
+    }
+    div[class*="st-key-btn_bad"] button {
+        border: 3px solid #c62828 !important;
+        background-color: #ffebee !important;
+        color: #b71c1c !important;
+    }
+
+    div[class*="st-key-btn_good"] button,
+    div[class*="st-key-btn_mid"] button,
+    div[class*="st-key-btn_bad"] button {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        width: 150px;
+}
+
+    div[class*="st-key-btn_answer"] {
+        width: 100%;
+        margin-top: 20px;
+        margin-bottom: 18px;
+    }
+
+    div[class*="st-key-btn_answer"] button {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        min-width: 300px;
+        min-height: 52px;
+        border: 5px solid #00008b !important;
+        background-color: #00008b !important;
+        color: #ffffff !important;
+        font-weight: bold!important;
+    }
+
+    .compound {
+        font-size: 25px;
+        font-weight: 900;
+        text-align: center;
+        padding: 0;
+    }
+    .condition {
+        font-size: 20px;
+        font-weight: 600;
+        text-align: center;
+        color: #222222;
+        padding: 20px;
+    }
+    .blank {
+        font-size: 25px;
+        font-weight: 700;
+        text-align: center;
+        color: #c62828;
+        border: 3px dashed #c62828;
+        border-radius: 10px;
+        background-color: #fff5f5;
+        box-sizing: border-box;
+    }
+    .answer {
+        font-size: 25px;
+        font-weight: 700;
+        text-align: center;
+        border: 2px solid #2e8b57;
+        border-radius: 10px;
+        padding: 8px 12px;
+        margin: 10px;
+        background-color: #eefaf3;
+        color: #000000;
+    }
+    .reaction-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        margin: 10px;
+    }
+    .condition-box {
+        min-width: 5em;
+        padding: 8px 12px;
+    }
+    .arrow {
+        font-size: 50px;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .label-subtitle {
+        font-size: 30px;
+        font-weight: 700;
+        text-align: center;
+        font-weight: bold;
+    }
+    .question-number {
+        font-size: 18px;
+    }
+    .self-rating-title {
+        font-size: 30px;
+        font-weight: 700;
+        text-align: center;
+        margin: 8px 0 10px;
+    }
+    /* ========================================
+    画面の向きによる化合物名・画像の並び替え
+    ======================================== */
+
+    /* 化合物名と構造式画像の2列を中央にそろえる */
+    div[class*="st-key-compound_"] div[data-testid="stHorizontalBlock"] {
+        align-items: center;
+    }
+
+    div[class*="st-key-compound_"] div[data-testid="stImage"] {
+        display: flex;
+        justify-content: center;
+    }
+
+    /* 縦向き：化合物名と画像を上下に並べる */
+    @media (orientation: portrait) {
+        div[class*="st-key-compound_"] div[data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 4px !important;
+        }
+
+        div[class*="st-key-compound_"] div[data-testid="column"] {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            flex: 0 0 100% !important;
+        }
+
+        div[class*="st-key-compound_"] .compound,
+        div[class*="st-key-compound_"] .answer {
+            width: 100%;
+            white-space: nowrap;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        div[class*="st-key-compound_"] div[data-testid="stImage"] img {
+            display: block;
+            width: auto !important;
+            max-width: 180px !important;
+            height: auto !important;
+            margin: 0 auto;
+        }
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.title("有機化合物 系統図トレーニング")
 
 chart_types = chart_map_df["chart_type"].dropna().unique().tolist()
 
+
 selected_chart = st.selectbox(
-    "練習する系統図を選んでください",
-    chart_types
+        "練習する系統図を選んでください",
+        chart_types
 )
 
 
@@ -80,10 +279,10 @@ reactions = {}
 
 for _, row in reactions_df.iterrows():
     reactions[row["reaction_id"]] = {
-        "label": row["condition"],
+        "condition": row["condition"],
+        "reaction_type": row["reaction_type"],
         "memo": row["memo"],
     }
-
 # =========================
 # 選択した系統図の化合物IDを取得
 # =========================
@@ -124,9 +323,11 @@ def make_questions_from_connections():
     for first_connection in connections:
         for second_connection in connections:
 
-            # 1つ目の生成物と
-            # 2つ目の反応物が同じなら連続反応
-            if first_connection["to"] == second_connection["from"]:
+             # 反応が連続し、出発物質と最終生成物が異なる場合だけ出題
+            if (
+                first_connection["to"] == second_connection["from"]
+                and first_connection["from"] != second_connection["to"]
+            ):
                 generated_questions.append(
                     {
                         "id": len(generated_questions) + 1,
@@ -198,87 +399,27 @@ if "finished_once" not in st.session_state:
 
 
 def show_question(question, hidden_part):
-    st.markdown(
-        """
-        <style>
-        h1 {
-        font-size: 2rem !important;
-        text-align: center;
-        }
-        .compound {
-            font-size: 25px;
-            font-weight: 700;
-            text-align: center;
-            padding: 12px;
-        }
-
-        .condition {
-            font-size: 18px;
-            text-align: center;
-            color: #555;
-            padding: 4px;
-        }
-        .blank {
-            font-size: 25px;
-            font-weight: 700;
-            text-align: center;
-            color: #c62828;
-            border: 2px dashed #c62828;
-            border-radius: 10px;
-            padding: 8px 12px;
-            margin: 0;
-            background-color: #fff5f5;
-        }
-        .answer {
-            font-size: 25px;
-            font-weight: 700;
-            text-align: center;
-            border: 2px solid #2e8b57;
-            border-radius: 10px;
-            padding: 8px 12px;
-            margin: 0;
-            background-color: #eefaf3;
-            color: #000000;
-        }
-        .reaction-row {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            margin: 2px 0;
-        }
-        .condition-box {
-            min-width: 130px;
-        }
-        .arrow {
-            font-size: 46px;
-            font-weight: 800;
-            line-height: 1;
-        }
-        """,
-        unsafe_allow_html=True,
-    )
-
     def show_compound(key):
         compound_id = question[key]
         value = compounds[compound_id]["name"]
         image_path = compounds[compound_id]["image"]
 
-        with st.container(border=True):
+        with st.container(border=False, key=f"compound_{key}"):
             if hidden_part == key and not st.session_state.show_answer:
                 st.markdown(
                     '<div class="blank">？</div>',
                     unsafe_allow_html=True,
                 )
             elif hidden_part == key:
-                st.markdown(
-                    f'<div class="answer">{value}</div>',
-                    unsafe_allow_html=True,
-                )
+                name_col, image_col = st.columns([2, 3])
 
-                left, center, right = st.columns([1, 3, 1])
+                with name_col:
+                    st.markdown(
+                        f'<div class="answer">{value}</div>',
+                        unsafe_allow_html=True,
+                    )
 
-                with center:
+                with image_col:
                     st.image(image_path, width=260)
 
                 memo = compounds[compound_id]["memo"]
@@ -287,23 +428,29 @@ def show_question(question, hidden_part):
                     st.info(f"メモ：{memo}")
 
             else:
-                st.markdown(
-                    f'<div class="compound">{value}</div>',
-                    unsafe_allow_html=True,
-                )
+                name_col, image_col = st.columns([2, 3])
 
-                left, center, right = st.columns([1, 3, 1])
+                with name_col:
+                    st.markdown(
+                        f'<div class="compound">{value}</div>',
+                        unsafe_allow_html=True,
+                    )
 
-                with center:
+                with image_col:
                     st.image(image_path, width=260)
 
     def show_condition(key):
         reaction_id = question[key]
-        value = reactions[reaction_id]["label"]
+        reaction = reactions[reaction_id]
+
+        reaction_type = reaction["reaction_type"]
+        condition = reaction["condition"]
+
+        value = f"{reaction_type}｜{condition}"
 
         if hidden_part == key and not st.session_state.show_answer:
             condition_html = (
-                '<div class="blank condition-box">反応条件は？</div>'
+                '<div class="blank condition-box">反応名・反応条件は？</div>'
             )
 
         elif hidden_part == key:
@@ -386,10 +533,11 @@ def find_review_candidates(review_item):
 
     return candidates
 
-
 def show_review_list():
-    st.subheader("復習リスト")
-
+    st.html(
+        f'<span class="label-subtitle">【復習リスト】</span>'
+    )
+    st.caption("この欄は上下にスクロールできます。")
     if len(st.session_state.review_list) == 0:
         if not st.session_state.finished_once:
             st.write("まだ復習項目はありません。")
@@ -401,13 +549,16 @@ def show_review_list():
                 display_name = compounds[item["item_id"]]["name"]
                 item_label = "化合物名"
             else:
-                display_name = reactions[item["item_id"]]["label"]
+                reaction = reactions[item["item_id"]]
+                display_name = (
+                    f'{reaction["reaction_type"]}｜{reaction["condition"]}'
+                )
                 item_label = "反応条件"
 
             st.write(f"{item_label}：「{display_name}」")
 
 
-left_col, right_col = st.columns([3, 1])
+left_col, right_col = st.columns([2, 1])
 
 with left_col:
     if st.session_state.mode == "normal":
@@ -457,9 +608,11 @@ with left_col:
 
             hidden_part = quiz_item["hidden_part"]
 
-            st.write(
-                f"問題 {st.session_state.quiz_number + 1}"
-                f" / {len(st.session_state.quiz_items)}"
+            st.html(
+                f'<span class="label-subtitle">【問題】</span>'
+                f'<span class="question-number"> '
+                f"({st.session_state.quiz_number + 1}"
+                f" / {len(st.session_state.quiz_items)})</span>",
             )
 
             if hidden_part in ["before", "answer", "after"]:
@@ -467,29 +620,29 @@ with left_col:
 
             show_question(question, hidden_part)
 
-            if st.button("答えを見る"):
+            if st.button("答えを見る", key="btn_answer"):
                 st.session_state.show_answer = True
                 st.rerun()
 
+
             if st.session_state.show_answer:
-                st.write("自己評価")
+                st.html('<div class="self-rating-title">【自己評価】</div>')
 
-                col1, col2, col3 = st.columns(3)
-
+                space1, col1, col2, col3, space2 = st.columns([1, 2, 2, 2, 1])
                 with col1:
-                    if st.button("できた"):
+                    if st.button("できた", key="btn_good"):
                         st.session_state.quiz_number += 1
                         st.session_state.show_answer = False
                         st.rerun()
 
                 with col2:
-                    if st.button("微妙"):
+                    if st.button("微妙", key="btn_mid"):
                         st.session_state.quiz_number += 1
                         st.session_state.show_answer = False
                         st.rerun()
 
                 with col3:
-                    if st.button("できなかった"):
+                    if st.button("できなかった", key="btn_bad"):
                         review_item = make_review_item(
                             question,
                             hidden_part,
@@ -553,9 +706,11 @@ with left_col:
 
             hidden_part = selected_candidate["hidden_part"]
 
-            st.write(
-                f"復習 {st.session_state.review_number + 1}"
-                f" / {len(st.session_state.review_list)}"
+            st.html(
+                f'<span class="label-subtitle">復習</span>'
+                f'<span class="question-number"> '
+                f"{st.session_state.review_number + 1}"
+                f" / {len(st.session_state.review_list)}</span>"
             )
 
             if hidden_part in ["before", "answer", "after"]:
@@ -567,7 +722,9 @@ with left_col:
                 st.rerun()
 
             if st.session_state.show_answer:
-                st.write("自己評価")
+                st.html(
+                    f'<span class="label-subtitle">自己評価</span>'
+                ) 
 
                 col1, col2, col3 = st.columns(3)
 
@@ -598,4 +755,9 @@ with left_col:
                         st.rerun()
 
 with right_col:
-    show_review_list()
+    with st.container(
+        height=1000,
+        border=True,
+        key="review_scroll",
+    ):
+        show_review_list()
