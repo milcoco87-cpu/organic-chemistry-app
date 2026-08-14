@@ -212,7 +212,7 @@ st.markdown(
     }
 
     /* iPad横向きなど、高さが低い横長画面だけをコンパクトにする */
-    @media (orientation: landscape) and (max-height: 900px) {
+    @media (orientation: landscape) and (max-height: １１００px) {
         .block-container {
             padding-top: 1rem !important;
             padding-bottom: 1rem !important;
