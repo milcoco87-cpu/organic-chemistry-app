@@ -26,10 +26,11 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    h1 {
+    h1,
+    h1 span {
         font-size: 40px;
         text-align: center;
-        color: #ffffff;
+        color: #ffffff !important;
         padding: 10px;
         margin: 1px;
         background-color: #000000;
@@ -207,6 +208,69 @@ st.markdown(
             max-width: 180px !important;
             height: auto !important;
             margin: 0 auto;
+        }
+    }
+
+    /* iPad横向きなど、高さが低い横長画面だけをコンパクトにする */
+    @media (orientation: landscape) and (max-height: 900px) {
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
+
+        h1,
+        h1 span {
+            font-size: 30px !important;
+            padding: 4px !important;
+        }
+
+        div[data-testid="stSelectbox"] label p {
+            font-size: 16px !important;
+        }
+
+        div[class*="st-key-compound_"] div[data-testid="stImage"] img {
+            width: auto !important;
+            max-width: 170px !important;
+            max-height: 95px !important;
+            object-fit: contain;
+        }
+
+        div[class*="st-key-compound_"] .compound,
+        div[class*="st-key-compound_"] .answer {
+            font-size: 21px !important;
+        }
+
+        div[class*="st-key-compound_"] .answer {
+            padding: 3px 8px !important;
+            margin: 2px !important;
+        }
+
+        .reaction-row {
+            margin: 2px !important;
+            gap: 8px !important;
+        }
+
+        .condition,
+        .condition-box {
+            padding: 3px 8px !important;
+        }
+
+        .arrow {
+            font-size: 36px !important;
+        }
+
+        div[class*="st-key-btn_answer"] {
+            margin-top: 8px !important;
+            margin-bottom: 8px !important;
+        }
+
+        div[class*="st-key-btn_answer"] button {
+            min-height: 44px !important;
+        }
+
+        .self-rating-title {
+            font-size: 24px !important;
+            margin: 3px 0 5px !important;
         }
     }
 
@@ -717,19 +781,17 @@ with left_col:
                 st.info("「？」の化合物名と構造式の両方を答えてください。")
 
             show_question(question, hidden_part)
-            if st.button("答えを見る"):
+            if st.button("答えを見る", key="btn_answer"):
                 st.session_state.show_answer = True
                 st.rerun()
 
             if st.session_state.show_answer:
-                st.html(
-                    f'<span class="label-subtitle">自己評価</span>'
-                ) 
+                st.html('<div class="self-rating-title">【自己評価】</div>')
 
-                col1, col2, col3 = st.columns(3)
+                space1, col1, col2, col3, space2 = st.columns([1, 2, 2, 2, 1])
 
                 with col1:
-                    if st.button("できた"):
+                    if st.button("できた", key="btn_good"):
                         st.session_state.review_list.pop(
                             st.session_state.review_number
                         )
@@ -743,13 +805,13 @@ with left_col:
                         st.rerun()
 
                 with col2:
-                    if st.button("微妙"):
+                    if st.button("微妙", key="btn_mid"):
                         st.session_state.review_number += 1
                         st.session_state.show_answer = False
                         st.rerun()
 
                 with col3:
-                    if st.button("できなかった"):
+                    if st.button("できなかった", key="btn_bad"):
                         st.session_state.review_number += 1
                         st.session_state.show_answer = False
                         st.rerun()
