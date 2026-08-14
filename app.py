@@ -212,16 +212,22 @@ st.markdown(
     }
 
     /* iPad横向きなど、高さが低い横長画面だけをコンパクトにする */
-    @media (orientation: landscape) and (max-height: １１００px) {
+    @media (orientation: landscape) and (max-height: 1100px) {
         .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 1rem !important;
+            padding-top: 1.5rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+
+        .block-container div[data-testid="stVerticalBlock"] {
+            gap: 0.35rem !important;
         }
 
         h1,
         h1 span {
-            font-size: 30px !important;
-            padding: 4px !important;
+            font-size: 26px !important;
+            line-height: 1.2 !important;
+            padding: 6px 4px !important;
+            overflow: visible !important;
         }
 
         div[data-testid="stSelectbox"] label p {
@@ -230,14 +236,14 @@ st.markdown(
 
         div[class*="st-key-compound_"] div[data-testid="stImage"] img {
             width: auto !important;
-            max-width: 170px !important;
-            max-height: 95px !important;
+            max-width: 140px !important;
+            max-height: 70px !important;
             object-fit: contain;
         }
 
         div[class*="st-key-compound_"] .compound,
         div[class*="st-key-compound_"] .answer {
-            font-size: 21px !important;
+            font-size: 19px !important;
         }
 
         div[class*="st-key-compound_"] .answer {
@@ -246,17 +252,26 @@ st.markdown(
         }
 
         .reaction-row {
-            margin: 2px !important;
-            gap: 8px !important;
+            margin: 0 !important;
+            gap: 6px !important;
         }
 
         .condition,
         .condition-box {
-            padding: 3px 8px !important;
+            font-size: 16px !important;
+            padding: 2px 6px !important;
         }
 
         .arrow {
-            font-size: 36px !important;
+            font-size: 30px !important;
+        }
+
+        div[data-testid="stAlert"] {
+            padding: 0.4rem 0.7rem !important;
+        }
+
+        .label-subtitle {
+            font-size: 24px !important;
         }
 
         div[class*="st-key-btn_answer"] {
@@ -265,7 +280,7 @@ st.markdown(
         }
 
         div[class*="st-key-btn_answer"] button {
-            min-height: 44px !important;
+            min-height: 38px !important;
         }
 
         .self-rating-title {
