@@ -182,37 +182,6 @@ st.markdown(
         justify-content: center;
     }
 
-    /* 縦向き：化合物名と画像を上下に並べる */
-    @media (orientation: portrait) {
-        div[class*="st-key-compound_"] div[data-testid="stHorizontalBlock"] {
-            flex-direction: column !important;
-            align-items: center !important;
-            gap: 4px !important;
-        }
-
-        div[class*="st-key-compound_"] div[data-testid="column"] {
-            width: 100% !important;
-            min-width: 100% !important;
-            max-width: 100% !important;
-            flex: 0 0 100% !important;
-        }
-
-        div[class*="st-key-compound_"] .compound,
-        div[class*="st-key-compound_"] .answer {
-            width: 100%;
-            white-space: nowrap;
-            text-align: center;
-            box-sizing: border-box;
-        }
-
-        div[class*="st-key-compound_"] div[data-testid="stImage"] img {
-            display: block;
-            width: auto !important;
-            max-width: 180px !important;
-            height: auto !important;
-            margin: 0 auto;
-        }
-    }
 
     /* iPad横向きなど、高さが低い横長画面だけをコンパクトにする */
     @media (orientation: landscape) and (max-height: 1100px) {
@@ -839,7 +808,7 @@ with left_col:
 
 with right_col:
     with st.container(
-        height=1000,
+        height=850,
         border=True,
         key="review_scroll",
     ):
