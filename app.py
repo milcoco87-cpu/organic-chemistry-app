@@ -35,6 +35,9 @@ st.markdown(
         margin: 1px;
         background-color: #000000;
     }
+    .block-container {
+        padding-top: 1.5rem !important;
+    }
     div[data-testid="stSelectbox"] label p {
         font-size: 20px !important;
         font-weight: 600 !important;
@@ -294,15 +297,19 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("有機化合物 系統図トレーニング")
-
 chart_types = chart_map_df["chart_type"].dropna().unique().tolist()
 
+title_col, chart_col = st.columns([3, 1])
 
-selected_chart = st.selectbox(
+with title_col:
+    st.title("有機化合物 系統図トレーニング")
+
+with chart_col:
+    selected_chart = st.selectbox(
         "練習する系統図を選んでください",
-        chart_types
-)
+        chart_types,
+        label_visibility="collapsed",
+    )
 
 
 # =========================
