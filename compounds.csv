@@ -1,9 +1,9 @@
 ﻿compound_id,name_ja,name_en,formula,image,memo
 cmp_006,エタノール,ethanol,C2H6O,ethanol.png,
 cmp_010,アセトアルデヒド,acetaldehyde,C2H4O,acetaldehyde.png,
-cmp_001,ナトリウムエトキシド,sodium ethoxide,C2H5ONa,sodium ethoxide.jpg,OとNaは結合線で結ばない
-cmp_007,エチレン,ethene,C2H4,ethene.jpg,
-cmp_018,酢酸,acetic acid,C2H4O2,acetic acid.jpg,
+cmp_001,ナトリウムエトキシド,sodium ethoxide,C2H5ONa,sodium ethoxide.png,OとNaは結合線で結ばない
+cmp_007,エチレン,ethene,C2H4,ethene.png,
+cmp_018,酢酸,acetic acid,C2H4O2,acetic acid.png,
 cmp_022,ベンゼン,benzene,C6H6,benzene.jpg,
 cmp_075,ニトロベンゼン,nitrobenzene,C6H5NO2,nitrobenzene.jpg,
 cmp_081,アニリン,aniline,C6H5NH2,aniline.jpg,

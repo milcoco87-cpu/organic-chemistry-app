@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import random
+from datetime import datetime, timezone, timedelta
 
 
 # =========================
@@ -180,11 +181,13 @@ st.markdown(
     div[class*="st-key-compound_"] div[data-testid="stImage"] {
         display: flex;
         justify-content: center;
+        padding: 10px 14px;
+        box-sizing: border-box;
     }
 
 
     /* iPad横向きなど、高さが低い横長画面だけをコンパクトにする */
-    @media (orientation: landscape) and (max-height: 1100px) {
+    @media (orientation: landscape) and (max-height: 1100px) and (hover: none) and (pointer: coarse) {
         .block-container {
             padding-top: 4rem !important;
             padding-bottom: 0.5rem !important;
@@ -279,6 +282,12 @@ with chart_col:
         chart_types,
     )
 
+student_name = st.text_input(
+    "氏名を入力してください",
+    key="student_name_input",
+    placeholder="例：山田 花子",
+)
+
 
 # =========================
 # 系統図を切り替えたらクイズ状態をリセット
@@ -296,6 +305,9 @@ elif st.session_state.selected_chart != selected_chart:
     st.session_state.review_list = []
     st.session_state.review_number = 0
     st.session_state.finished_once = False
+    st.session_state.completed_at = None
+    st.session_state.run_name = ""
+    st.session_state.run_chart = ""
 
     if "quiz_items" in st.session_state:
         del st.session_state.quiz_items
@@ -451,6 +463,62 @@ if "review_number" not in st.session_state:
 if "finished_once" not in st.session_state:
     st.session_state.finished_once = False
 
+if "completed_at" not in st.session_state:
+    st.session_state.completed_at = None
+
+if "run_name" not in st.session_state:
+    st.session_state.run_name = ""
+
+if "run_chart" not in st.session_state:
+    st.session_state.run_chart = ""
+
+
+def lock_run_info():
+    """その回の氏名・系統を固定する。将来は出題方法もここで保存する。"""
+    if st.session_state.run_name == "":
+        st.session_state.run_name = st.session_state.student_name_input.strip()
+
+    if st.session_state.run_chart == "":
+        st.session_state.run_chart = selected_chart
+
+    # 将来、出題方法のプルダウンを追加したら、たとえば次のように保存できます。
+    # if "run_question_style" not in st.session_state:
+    #     st.session_state.run_question_style = selected_question_style
+
+
+def show_completion_certificate():
+    """完成画面に、その回の完了証明を表示する。"""
+    lock_run_info()
+
+    if st.session_state.completed_at is None:
+        st.session_state.completed_at = datetime.now(
+            timezone(timedelta(hours=9))
+        ).strftime("%Y/%m/%d %H:%M:%S")
+
+    st.success("🎉 完成！おめでとうございます！")
+
+    certificate_lines = [
+        f"**氏名：{st.session_state.run_name}**",
+        f"**系統：{st.session_state.run_chart}**",
+    ]
+
+    # 将来「出題方法」を実装したら、run_question_style を保存するだけで
+    # この完了証明にも自動で1行追加できます。
+    if st.session_state.get("run_question_style"):
+        certificate_lines.append(
+            f"**出題方法：{st.session_state.run_question_style}**"
+        )
+
+    certificate_lines.append(
+        f"**完了日時：{st.session_state.completed_at}**"
+    )
+
+    st.info("\n\n".join(certificate_lines))
+    st.info(
+        "この画面をスクリーンショットして先生に見せたら、"
+        "平常点を追加します。"
+    )
+
 
 def show_question(question, hidden_part):
     def show_compound(key):
@@ -474,7 +542,7 @@ def show_question(question, hidden_part):
                     )
 
                 with image_col:
-                    st.image(image_path, width=260)
+                    st.image(image_path)
 
                 memo = compounds[compound_id]["memo"]
 
@@ -491,7 +559,7 @@ def show_question(question, hidden_part):
                     )
 
                 with image_col:
-                    st.image(image_path, width=260)
+                    st.image(image_path)
 
     def show_condition(key):
         reaction_id = question[key]
@@ -635,11 +703,7 @@ with left_col:
                     st.rerun()
 
             else:
-                st.success("🎉 完成！おめでとうございます！")
-                st.info(
-                    "この画面をスクリーンショットして先生に見せたら、"
-                    "平常点を追加します。"
-                )
+                show_completion_certificate()
 
             if st.button("もう一度最初からやりましょう"):
                 st.session_state.mode = "normal"
@@ -649,6 +713,9 @@ with left_col:
                 st.session_state.review_list = []
                 st.session_state.review_number = 0
                 st.session_state.finished_once = False
+                st.session_state.completed_at = None
+                st.session_state.run_name = ""
+                st.session_state.run_chart = ""
                 st.rerun()
 
         else:
@@ -675,8 +742,12 @@ with left_col:
             show_question(question, hidden_part)
 
             if st.button("答えを見る", key="btn_answer"):
-                st.session_state.show_answer = True
-                st.rerun()
+                if st.session_state.student_name_input.strip() == "":
+                    st.warning("氏名を入力してから始めてください。")
+                else:
+                    lock_run_info()
+                    st.session_state.show_answer = True
+                    st.rerun()
 
 
             if st.session_state.show_answer:
@@ -715,11 +786,7 @@ with left_col:
                         st.rerun()
     else:
         if len(st.session_state.review_list) == 0:
-            st.success("🎉 完成！おめでとうございます！")
-            st.info(
-                "この画面をスクリーンショットして先生に見せたら、"
-                "平常点を追加します。"
-            )
+            show_completion_certificate()
 
             if st.button("もう一度最初からやりましょう"):
                 st.session_state.mode = "normal"
@@ -728,6 +795,9 @@ with left_col:
                 st.session_state.show_answer = False
                 st.session_state.review_number = 0
                 st.session_state.finished_once = False
+                st.session_state.completed_at = None
+                st.session_state.run_name = ""
+                st.session_state.run_chart = ""
                 st.rerun()
 
         else:
@@ -772,8 +842,12 @@ with left_col:
 
             show_question(question, hidden_part)
             if st.button("答えを見る", key="btn_answer"):
-                st.session_state.show_answer = True
-                st.rerun()
+                if st.session_state.student_name_input.strip() == "":
+                    st.warning("氏名を入力してから始めてください。")
+                else:
+                    lock_run_info()
+                    st.session_state.show_answer = True
+                    st.rerun()
 
             if st.session_state.show_answer:
                 st.html('<div class="self-rating-title">【自己評価】</div>')
