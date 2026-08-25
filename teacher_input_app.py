@@ -177,7 +177,7 @@ def load_reactions():
     )
 
 
-def commit_files(files, message):
+def commit_files(files, message, max_retries=4):
     """
     files = {
         "compounds.csv": b"...",
@@ -185,26 +185,16 @@ def commit_files(files, message):
     }
 
     複数ファイルを1回のGitHubコミットでまとめて保存する。
+
+    GitHub側のmainブランチが保存直前に更新された場合、
+    422 "Update is not a fast forward" が返ることがあるため、
+    最新HEADを取り直して自動再試行する。
     """
 
-    # 現在のmainブランチ先頭
-    ref = github_request(
-        "GET",
-        f"{API_BASE}/git/ref/heads/{GITHUB_BRANCH}",
-    ).json()
+    # blobはブランチHEADに依存しないので最初に1回だけ作成
+    blobs = []
 
-    parent_commit_sha = ref["object"]["sha"]
-
-    parent_commit = github_request(
-        "GET",
-        f"{API_BASE}/git/commits/{parent_commit_sha}",
-    ).json()
-
-    base_tree_sha = parent_commit["tree"]["sha"]
-
-    tree_items = []
-
-    for path, content in files.items():
+    for file_path, content in files.items():
         blob = github_request(
             "POST",
             f"{API_BASE}/git/blobs",
@@ -214,44 +204,93 @@ def commit_files(files, message):
             },
         ).json()
 
-        tree_items.append(
+        blobs.append(
             {
-                "path": path,
+                "path": file_path,
                 "mode": "100644",
                 "type": "blob",
                 "sha": blob["sha"],
             }
         )
 
-    new_tree = github_request(
-        "POST",
-        f"{API_BASE}/git/trees",
-        json={
-            "base_tree": base_tree_sha,
-            "tree": tree_items,
-        },
-    ).json()
+    last_error = None
 
-    new_commit = github_request(
-        "POST",
-        f"{API_BASE}/git/commits",
-        json={
-            "message": message,
-            "tree": new_tree["sha"],
-            "parents": [parent_commit_sha],
-        },
-    ).json()
+    for attempt in range(max_retries):
 
-    github_request(
-        "PATCH",
-        f"{API_BASE}/git/refs/heads/{GITHUB_BRANCH}",
-        json={
-            "sha": new_commit["sha"],
-            "force": False,
-        },
+        # 毎回、最新のmainブランチ先頭を取り直す
+        ref_response = requests.get(
+            f"{API_BASE}/git/ref/heads/{GITHUB_BRANCH}",
+            headers=HEADERS,
+            timeout=30,
+        )
+
+        if not ref_response.ok:
+            raise RuntimeError(
+                f"GitHub API エラー ({ref_response.status_code})\n"
+                f"{ref_response.text}"
+            )
+
+        parent_commit_sha = ref_response.json()["object"]["sha"]
+
+        parent_commit = github_request(
+            "GET",
+            f"{API_BASE}/git/commits/{parent_commit_sha}",
+        ).json()
+
+        base_tree_sha = parent_commit["tree"]["sha"]
+
+        new_tree = github_request(
+            "POST",
+            f"{API_BASE}/git/trees",
+            json={
+                "base_tree": base_tree_sha,
+                "tree": blobs,
+            },
+        ).json()
+
+        new_commit = github_request(
+            "POST",
+            f"{API_BASE}/git/commits",
+            json={
+                "message": message,
+                "tree": new_tree["sha"],
+                "parents": [parent_commit_sha],
+            },
+        ).json()
+
+        # ref更新だけは422を自前で判定して再試行する
+        update_response = requests.patch(
+            f"{API_BASE}/git/refs/heads/{GITHUB_BRANCH}",
+            headers=HEADERS,
+            json={
+                "sha": new_commit["sha"],
+                "force": False,
+            },
+            timeout=30,
+        )
+
+        if update_response.ok:
+            return new_commit["sha"]
+
+        if (
+            update_response.status_code == 422
+            and "fast forward" in update_response.text.lower()
+        ):
+            last_error = update_response.text
+            # 別処理が先にmainを更新したので、
+            # 最新HEADからコミットを作り直して再試行
+            continue
+
+        raise RuntimeError(
+            f"GitHub API エラー ({update_response.status_code})\n"
+            f"{update_response.text}"
+        )
+
+    raise RuntimeError(
+        "GitHub側の更新とタイミングが重なったため保存できませんでした。"
+        "もう一度「登録する／更新する」を押してください。\n"
+        f"{last_error or ''}"
     )
-
-    return new_commit["sha"]
 
 
 # =========================================================
