@@ -13,13 +13,6 @@ compounds_df = pd.read_csv("compounds.csv")
 reactions_df = pd.read_csv("reactions.csv")
 chart_map_df = pd.read_csv("compound_chart_map.csv")
 
-# 旧CSVでも動くように、追加列がなければ補う
-if "range_level" not in compounds_df.columns:
-    compounds_df["range_level"] = ""
-
-if "custom" not in reactions_df.columns:
-    reactions_df["custom"] = False
-
 
 
 # =========================
@@ -358,17 +351,9 @@ st.markdown(
 chart_types = chart_map_df["chart_type"].dropna().unique().tolist()
 question_styles = ["通常モード", "構造式モード"]
 
-range_options = [
-    "炭化水素まで",
-    "エステルまで",
-    "芳香族まで",
-    "全部",
-    "カスタム",
-]
-
 st.title("有機化合物 系統図トレーニング")
 
-name_col, chart_col, range_col, mode_col = st.columns([2, 1, 1.4, 1])
+name_col, chart_col, mode_col = st.columns([2, 1, 1])
 
 with name_col:
     student_name = st.text_input(
@@ -381,13 +366,6 @@ with chart_col:
     selected_chart = st.selectbox(
         "系統図",
         chart_types,
-    )
-
-with range_col:
-    selected_range = st.selectbox(
-        "出題範囲",
-        range_options,
-        index=3,
     )
 
 with mode_col:
@@ -407,17 +385,12 @@ if "selected_chart" not in st.session_state:
 if "selected_question_style" not in st.session_state:
     st.session_state.selected_question_style = selected_question_style
 
-if "selected_range" not in st.session_state:
-    st.session_state.selected_range = selected_range
-
 if (
     st.session_state.selected_chart != selected_chart
     or st.session_state.selected_question_style != selected_question_style
-    or st.session_state.selected_range != selected_range
 ):
     st.session_state.selected_chart = selected_chart
     st.session_state.selected_question_style = selected_question_style
-    st.session_state.selected_range = selected_range
 
     st.session_state.mode = "normal"
     st.session_state.quiz_number = 0
@@ -429,16 +402,12 @@ if (
     st.session_state.run_name = ""
     st.session_state.run_chart = ""
     st.session_state.run_question_style = ""
-    st.session_state.run_range = ""
 
     if "quiz_items" in st.session_state:
         del st.session_state.quiz_items
 
     if "two_questions" in st.session_state:
         del st.session_state.two_questions
-
-    if "custom_questions" in st.session_state:
-        del st.session_state.custom_questions
 
     st.rerun()
 
@@ -522,84 +491,18 @@ def format_reaction_label(reaction):
     parts = [part for part in [reaction_type, condition] if part]
     return "｜".join(parts)
 # =========================
-# 選択した系統図・出題範囲の化合物IDを取得
+# 選択した系統図の化合物IDを取得
 # =========================
 
-def normalize_range_level(value):
-    if pd.isna(value):
-        return None
-
-    value_text = str(value).strip()
-
-    if value_text.endswith(".0"):
-        value_text = value_text[:-2]
-
-    if value_text in {"1", "2", "3"}:
-        return int(value_text)
-
-    return None
-
-
-compounds_df["range_level_normalized"] = (
-    compounds_df["range_level"].apply(normalize_range_level)
-)
-
-chart_compound_ids = set(
+selected_compound_ids = set(
     chart_map_df[
         chart_map_df["chart_type"] == selected_chart
     ]["compound_id"]
 )
 
-range_level_map = {
-    "炭化水素まで": 1,
-    "エステルまで": 2,
-    "芳香族まで": 3,
-}
-
-if selected_range in range_level_map:
-    max_level = range_level_map[selected_range]
-
-    allowed_compound_ids = set(
-        compounds_df[
-            compounds_df["range_level_normalized"].notna()
-            & (
-                compounds_df["range_level_normalized"]
-                <= max_level
-            )
-        ]["compound_id"]
-    )
-
-    selected_compound_ids = (
-        chart_compound_ids
-        & allowed_compound_ids
-    )
-
-else:
-    # 「全部」と「カスタム」は、系統図内の化合物を母集団にする
-    selected_compound_ids = chart_compound_ids
-
 # =========================
 # reactions.csv から反応のつながりを作る
 # =========================
-
-def normalize_custom(value):
-    if pd.isna(value):
-        return False
-
-    if isinstance(value, bool):
-        return value
-
-    return (
-        str(value)
-        .strip()
-        .lower()
-        in {"true", "1", "yes", "on"}
-    )
-
-
-reactions_df["custom_normalized"] = (
-    reactions_df["custom"].apply(normalize_custom)
-)
 
 connections = []
 
@@ -609,13 +512,6 @@ for _, row in reactions_df.iterrows():
         row["reactant_id"] in selected_compound_ids
         and row["product_id"] in selected_compound_ids
     ):
-        # カスタム時だけ custom=True の反応に限定
-        if (
-            selected_range == "カスタム"
-            and not row["custom_normalized"]
-        ):
-            continue
-
         connections.append(
             {
                 "from": row["reactant_id"],
@@ -653,24 +549,6 @@ def make_questions_from_connections():
     return generated_questions
 
 questions = make_questions_from_connections()
-
-
-def make_custom_single_questions():
-    """カスタムで選んだ1反応を、そのまま1本問題として使う。"""
-    custom_questions = {}
-
-    for connection in connections:
-        question_id = f"custom_one_{connection['reaction']}"
-
-        custom_questions[question_id] = {
-            "id": question_id,
-            "layout": "two",
-            "before": connection["from"],
-            "condition1": connection["reaction"],
-            "after": connection["to"],
-        }
-
-    return custom_questions
 
 
 def make_two_compound_question(connection, hidden_compound_id):
@@ -713,47 +591,6 @@ def get_target_hidden_parts():
 
 
 def make_quiz_items():
-    # カスタム：
-    # 選択した反応を1本問題として出題し、
-    # さらに選択反応どうしが連続する場合は2本問題も混ぜる。
-    if selected_range == "カスタム":
-        items = []
-
-        custom_single_questions = make_custom_single_questions()
-        st.session_state.custom_questions = custom_single_questions
-
-        if selected_question_style == "構造式モード":
-            single_hidden_parts = ["before", "after"]
-            double_hidden_parts = ["before", "answer", "after"]
-        else:
-            single_hidden_parts = ["before", "condition1", "after"]
-            double_hidden_parts = all_hidden_parts
-
-        # 1反応問題
-        for question_id in custom_single_questions:
-            for hidden_part in single_hidden_parts:
-                items.append(
-                    {
-                        "question_id": question_id,
-                        "hidden_part": hidden_part,
-                        "layout": "two",
-                    }
-                )
-
-        # 2反応問題（選択した反応がつながっている場合だけ）
-        for question in questions:
-            for hidden_part in double_hidden_parts:
-                items.append(
-                    {
-                        "question_id": question["id"],
-                        "hidden_part": hidden_part,
-                        "layout": "three",
-                    }
-                )
-
-        random.shuffle(items)
-        return items
-
     # 構造式モード：
     # 選択した系統図に登録されている化合物を、1周につき各1回出題する。
     # まず3化合物ルートから候補を集め、そこに入れない化合物は
@@ -862,9 +699,6 @@ if "run_chart" not in st.session_state:
 if "run_question_style" not in st.session_state:
     st.session_state.run_question_style = ""
 
-if "run_range" not in st.session_state:
-    st.session_state.run_range = ""
-
 
 def lock_run_info():
     """その回の氏名・系統・出題モードを固定する。"""
@@ -876,9 +710,6 @@ def lock_run_info():
 
     if st.session_state.run_question_style == "":
         st.session_state.run_question_style = selected_question_style
-
-    if st.session_state.run_range == "":
-        st.session_state.run_range = selected_range
 
 
 def show_completion_certificate():
@@ -902,11 +733,6 @@ def show_completion_certificate():
     if st.session_state.get("run_question_style"):
         certificate_lines.append(
             f"**出題方法：{st.session_state.run_question_style}**"
-        )
-
-    if st.session_state.get("run_range"):
-        certificate_lines.append(
-            f"**出題範囲：{st.session_state.run_range}**"
         )
 
     certificate_lines.append(
@@ -1035,12 +861,6 @@ def get_question_by_id(question_id):
     if isinstance(question_id, str) and question_id.startswith("two_"):
         return st.session_state.two_questions[question_id]
 
-    if (
-        isinstance(question_id, str)
-        and question_id.startswith("custom_one_")
-    ):
-        return st.session_state.custom_questions[question_id]
-
     return next(
         question
         for question in questions
@@ -1130,19 +950,7 @@ left_col, right_col = st.columns([2, 1])
 with left_col:
     if st.session_state.mode == "normal":
 
-        if len(st.session_state.quiz_items) == 0:
-            if selected_range == "カスタム":
-                st.warning(
-                    "この系統図ではカスタム反応が選択されていません。"
-                    " 先生アプリで反応を選んで保存してください。"
-                )
-            else:
-                st.warning(
-                    "この出題範囲には問題がありません。"
-                    " 先生アプリの出題範囲設定を確認してください。"
-                )
-
-        elif st.session_state.quiz_number >= len(
+        if st.session_state.quiz_number >= len(
             st.session_state.quiz_items
         ):
             st.session_state.finished_once = True
@@ -1174,7 +982,6 @@ with left_col:
                 st.session_state.run_name = ""
                 st.session_state.run_chart = ""
                 st.session_state.run_question_style = ""
-                st.session_state.run_range = ""
                 st.rerun()
 
         else:
@@ -1264,7 +1071,6 @@ with left_col:
                 st.session_state.run_name = ""
                 st.session_state.run_chart = ""
                 st.session_state.run_question_style = ""
-                st.session_state.run_range = ""
                 st.rerun()
 
         else:
