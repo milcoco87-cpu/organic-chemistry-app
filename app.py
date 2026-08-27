@@ -208,6 +208,12 @@ st.markdown(
     .question-number {
         font-size: 18px;
     }
+    .question-prompt {
+        font-size: 18px;
+        margin-left: 16px;
+        color: #1f5f99;
+        font-weight: 600;
+    }
     .self-rating-title {
         font-size: 30px;
         font-weight: 700;
@@ -315,6 +321,11 @@ st.markdown(
 
         .label-subtitle {
             font-size: 24px !important;
+        }
+
+        .question-number,
+        .question-prompt {
+            font-size: 15px !important;
         }
 
         div[class*="st-key-btn_answer"] {
@@ -984,18 +995,21 @@ with left_col:
 
             hidden_part = quiz_item["hidden_part"]
 
+            if hidden_part in ["before", "answer", "after"]:
+                if selected_question_style == "構造式モード":
+                    prompt_text = "「？」の構造式を書いてください。"
+                else:
+                    prompt_text = "「？」の化合物名と構造式の両方を答えてください。"
+            else:
+                prompt_text = "反応名・反応条件を答えてください。"
+
             st.html(
                 f'<span class="label-subtitle">【問題】</span>'
                 f'<span class="question-number"> '
                 f"({st.session_state.quiz_number + 1}"
-                f" / {len(st.session_state.quiz_items)})</span>",
+                f" / {len(st.session_state.quiz_items)})</span>"
+                f'<span class="question-prompt">{prompt_text}</span>'
             )
-
-            if hidden_part in ["before", "answer", "after"]:
-                if selected_question_style == "構造式モード":
-                    st.info("「？」の構造式を書いてください。")
-                else:
-                    st.info("「？」の化合物名と構造式の両方を答えてください。")
 
             show_question(question, hidden_part)
 
@@ -1089,18 +1103,21 @@ with left_col:
 
             hidden_part = selected_candidate["hidden_part"]
 
+            if hidden_part in ["before", "answer", "after"]:
+                if st.session_state.get("run_question_style") == "構造式モード":
+                    prompt_text = "「？」の構造式を書いてください。"
+                else:
+                    prompt_text = "「？」の化合物名と構造式の両方を答えてください。"
+            else:
+                prompt_text = "反応名・反応条件を答えてください。"
+
             st.html(
                 f'<span class="label-subtitle">復習</span>'
                 f'<span class="question-number"> '
                 f"{st.session_state.review_number + 1}"
                 f" / {len(st.session_state.review_list)}</span>"
+                f'<span class="question-prompt">{prompt_text}</span>'
             )
-
-            if hidden_part in ["before", "answer", "after"]:
-                if st.session_state.get("run_question_style") == "構造式モード":
-                    st.info("「？」の構造式を書いてください。")
-                else:
-                    st.info("「？」の化合物名と構造式の両方を答えてください。")
 
             show_question(question, hidden_part)
             if st.button("答えを見る", key="btn_answer"):
