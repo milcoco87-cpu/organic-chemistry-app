@@ -40,7 +40,8 @@ st.markdown(
     .block-container {
         padding-top: 4rem !important;
     }
-    div[data-testid="stSelectbox"] label p {
+    div[data-testid="stSelectbox"] label p,
+    div[data-testid="stTextInput"] label p {
         font-size: 20px !important;
         font-weight: 600 !important;
     }
@@ -70,7 +71,7 @@ st.markdown(
 
     /* 「？」だけのときもボックス中央に置く */
     div[class*="st-key-compound_"] .blank {
-        min-height: 52px;
+        min-height: 95px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -249,7 +250,8 @@ st.markdown(
             overflow: visible !important;
         }
 
-        div[data-testid="stSelectbox"] label p {
+        div[data-testid="stSelectbox"] label p,
+        div[data-testid="stTextInput"] label p {
             font-size: 16px !important;
         }
 
