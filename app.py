@@ -298,16 +298,21 @@ st.markdown(
 )
 
 chart_types = chart_map_df["chart_type"].dropna().unique().tolist()
+question_styles = ["通常モード", "構造式モード"]
 
-title_col, chart_col = st.columns([2, 1])
+title_col, control_col = st.columns([2, 1])
 
 with title_col:
     st.title("有機化合物 系統図トレーニング")
 
-with chart_col:
+with control_col:
     selected_chart = st.selectbox(
         "練習する系統図を選んでください",
         chart_types,
+    )
+    selected_question_style = st.selectbox(
+        "出題モードを選んでください",
+        question_styles,
     )
 
 student_name = st.text_input(
@@ -324,8 +329,15 @@ student_name = st.text_input(
 if "selected_chart" not in st.session_state:
     st.session_state.selected_chart = selected_chart
 
-elif st.session_state.selected_chart != selected_chart:
+if "selected_question_style" not in st.session_state:
+    st.session_state.selected_question_style = selected_question_style
+
+if (
+    st.session_state.selected_chart != selected_chart
+    or st.session_state.selected_question_style != selected_question_style
+):
     st.session_state.selected_chart = selected_chart
+    st.session_state.selected_question_style = selected_question_style
 
     st.session_state.mode = "normal"
     st.session_state.quiz_number = 0
@@ -336,6 +348,7 @@ elif st.session_state.selected_chart != selected_chart:
     st.session_state.completed_at = None
     st.session_state.run_name = ""
     st.session_state.run_chart = ""
+    st.session_state.run_question_style = ""
 
     if "quiz_items" in st.session_state:
         del st.session_state.quiz_items
@@ -481,7 +494,7 @@ def make_questions_from_connections():
 
 questions = make_questions_from_connections()
 
-hidden_parts = [
+all_hidden_parts = [
     "before",
     "condition1",
     "answer",
@@ -498,11 +511,18 @@ part_names = {
 }
 
 
+def get_target_hidden_parts():
+    if selected_question_style == "構造式モード":
+        return ["before", "answer", "after"]
+    return all_hidden_parts
+
+
 def make_quiz_items():
     items = []
+    target_hidden_parts = get_target_hidden_parts()
 
     for question in questions:
-        for hidden_part in hidden_parts:
+        for hidden_part in target_hidden_parts:
             items.append(
                 {
                     "question_id": question["id"],
@@ -544,18 +564,20 @@ if "run_name" not in st.session_state:
 if "run_chart" not in st.session_state:
     st.session_state.run_chart = ""
 
+if "run_question_style" not in st.session_state:
+    st.session_state.run_question_style = ""
+
 
 def lock_run_info():
-    """その回の氏名・系統を固定する。将来は出題方法もここで保存する。"""
+    """その回の氏名・系統・出題モードを固定する。"""
     if st.session_state.run_name == "":
         st.session_state.run_name = st.session_state.student_name_input.strip()
 
     if st.session_state.run_chart == "":
         st.session_state.run_chart = selected_chart
 
-    # 将来、出題方法のプルダウンを追加したら、たとえば次のように保存できます。
-    # if "run_question_style" not in st.session_state:
-    #     st.session_state.run_question_style = selected_question_style
+    if st.session_state.run_question_style == "":
+        st.session_state.run_question_style = selected_question_style
 
 
 def show_completion_certificate():
@@ -653,7 +675,7 @@ def show_question(question, hidden_part):
             if co_reactant:
                 co_reactant_html = (
                     f'<div class="co-reactant">{co_reactant}</div>'
-                    '<div class="co-reactant-arrow">--→</div>'
+                    '<div class="co-reactant-arrow">→</div>'
                 )
             else:
                 co_reactant_html = ""
@@ -664,7 +686,7 @@ def show_question(question, hidden_part):
             if co_reactant:
                 co_reactant_html = (
                     f'<div class="co-reactant">{co_reactant}</div>'
-                    '<div class="co-reactant-arrow">--→</div>'
+                    '<div class="co-reactant-arrow">→</div>'
                 )
             else:
                 co_reactant_html = ""
@@ -726,7 +748,7 @@ def find_review_candidates(review_item):
     candidates = []
 
     for question in questions:
-        for hidden_part in hidden_parts:
+        for hidden_part in all_hidden_parts:
             if hidden_part in ["before", "answer", "after"]:
                 item_type = "compound"
             else:
@@ -807,6 +829,7 @@ with left_col:
                 st.session_state.completed_at = None
                 st.session_state.run_name = ""
                 st.session_state.run_chart = ""
+                st.session_state.run_question_style = ""
                 st.rerun()
 
         else:
@@ -828,7 +851,10 @@ with left_col:
             )
 
             if hidden_part in ["before", "answer", "after"]:
-                st.info("「？」の化合物名と構造式の両方を答えてください。")
+                if selected_question_style == "構造式モード":
+                    st.info("「？」の構造式を書いてください。")
+                else:
+                    st.info("「？」の化合物名と構造式の両方を答えてください。")
 
             show_question(question, hidden_part)
 
@@ -889,6 +915,7 @@ with left_col:
                 st.session_state.completed_at = None
                 st.session_state.run_name = ""
                 st.session_state.run_chart = ""
+                st.session_state.run_question_style = ""
                 st.rerun()
 
         else:
@@ -929,7 +956,10 @@ with left_col:
             )
 
             if hidden_part in ["before", "answer", "after"]:
-                st.info("「？」の化合物名と構造式の両方を答えてください。")
+                if st.session_state.get("run_question_style") == "構造式モード":
+                    st.info("「？」の構造式を書いてください。")
+                else:
+                    st.info("「？」の化合物名と構造式の両方を答えてください。")
 
             show_question(question, hidden_part)
             if st.button("答えを見る", key="btn_answer"):
