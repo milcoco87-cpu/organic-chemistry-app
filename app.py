@@ -653,7 +653,7 @@ def show_question(question, hidden_part):
             if co_reactant:
                 co_reactant_html = (
                     f'<div class="co-reactant">{co_reactant}</div>'
-                    '<div class="co-reactant-arrow">→</div>'
+                    '<div class="co-reactant-arrow">--→</div>'
                 )
             else:
                 co_reactant_html = ""
@@ -664,7 +664,7 @@ def show_question(question, hidden_part):
             if co_reactant:
                 co_reactant_html = (
                     f'<div class="co-reactant">{co_reactant}</div>'
-                    '<div class="co-reactant-arrow">→</div>'
+                    '<div class="co-reactant-arrow">--→</div>'
                 )
             else:
                 co_reactant_html = ""
