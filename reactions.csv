@@ -1,10 +1,10 @@
 ﻿reaction_id,reactant_id,product_id,condition,reaction_type,memo,custom
-rxn_001,cmp_006,cmp_001,金属ナトリウム,置換,,True
-rxn_002,cmp_010,cmp_006,還元剤,還元,,True
-rxn_003,cmp_007,cmp_006,高温高圧＋リン酸触媒,水の付加,,True
+rxn_001,cmp_006,cmp_001,金属ナトリウム,置換,,False
+rxn_002,cmp_010,cmp_006,還元剤,還元,,False
+rxn_003,cmp_007,cmp_006,高温高圧＋リン酸触媒,水の付加,,False
 rxn_004,cmp_006,cmp_010,ニクロム酸カリウム,酸化,,False
 rxn_005,cmp_010,cmp_018,ニクロム酸カリウム,酸化,,False
-rxn_006,cmp_022,cmp_075,濃硫酸＋濃硝酸,ニトロ化,,True
+rxn_006,cmp_022,cmp_075,濃硫酸＋濃硝酸,ニトロ化,,False
 rxn_007,cmp_075,cmp_081,濃塩酸＋Sn,還元,Snの代わりにFeでもOK,False
 rxn_008,cmp_006,cmp_002,130〜140℃・濃硫酸,脱水,,False
 rxn_009,cmp_006,cmp_007,160〜170℃・濃硫酸,脱水,,False
