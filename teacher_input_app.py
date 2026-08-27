@@ -41,6 +41,7 @@ COMPOUND_COLUMNS = [
     "formula",
     "image",
     "memo",
+    "range_level",
 ]
 
 REACTION_COLUMNS = [
@@ -50,6 +51,7 @@ REACTION_COLUMNS = [
     "condition",
     "reaction_type",
     "memo",
+    "custom",
 ]
 
 
@@ -510,6 +512,7 @@ if st.button(
                         "formula": formula,
                         "image": image_filename,
                         "memo": memo,
+                        "range_level": "",
                     }
                 ]
             )
@@ -669,6 +672,201 @@ if len(df) > 0:
 else:
     st.info(
         "まだ化合物は登録されていません。"
+    )
+
+
+# =========================================================
+# 出題範囲設定
+# =========================================================
+
+st.divider()
+st.subheader("📚 出題範囲設定")
+
+st.caption(
+    "1＝炭化水素まで　／　2＝エステルまで　／　3＝芳香族まで"
+)
+st.caption(
+    "1～3は化合物ごとに1つだけ選びます。"
+    " 未設定のまま保存して、途中から続けることもできます。"
+)
+
+range_df = df_registered.copy()
+
+if len(range_df) > 0:
+
+    def normalize_range_level(value):
+        if pd.isna(value):
+            return ""
+
+        value_text = str(value).strip()
+
+        if value_text.endswith(".0"):
+            value_text = value_text[:-2]
+
+        if value_text in {"1", "2", "3"}:
+            return value_text
+
+        return ""
+
+    range_df["range_level"] = (
+        range_df["range_level"]
+        .apply(normalize_range_level)
+    )
+
+    range_editor_df = (
+        range_df[
+            [
+                "compound_id",
+                "name_ja",
+                "range_level",
+            ]
+        ]
+        .sort_values("compound_id")
+        .reset_index(drop=True)
+    )
+
+    range_editor_df["1"] = (
+        range_editor_df["range_level"] == "1"
+    )
+    range_editor_df["2"] = (
+        range_editor_df["range_level"] == "2"
+    )
+    range_editor_df["3"] = (
+        range_editor_df["range_level"] == "3"
+    )
+
+    range_editor_df = range_editor_df[
+        [
+            "compound_id",
+            "name_ja",
+            "1",
+            "2",
+            "3",
+        ]
+    ]
+
+    edited_range_df = st.data_editor(
+        range_editor_df,
+        use_container_width=True,
+        hide_index=True,
+        disabled=[
+            "compound_id",
+            "name_ja",
+        ],
+        column_config={
+            "compound_id": st.column_config.TextColumn(
+                "化合物ID"
+            ),
+            "name_ja": st.column_config.TextColumn(
+                "化合物名"
+            ),
+            "1": st.column_config.CheckboxColumn(
+                "1"
+            ),
+            "2": st.column_config.CheckboxColumn(
+                "2"
+            ),
+            "3": st.column_config.CheckboxColumn(
+                "3"
+            ),
+        },
+        key="range_level_editor",
+    )
+
+    range_save_col, range_status_col = st.columns(
+        [1, 3]
+    )
+
+    with range_save_col:
+        save_range = st.button(
+            "出題範囲を保存",
+            type="primary",
+            key="save_range_levels",
+        )
+
+    if save_range:
+
+        selected_counts = (
+            edited_range_df[
+                ["1", "2", "3"]
+            ]
+            .fillna(False)
+            .astype(bool)
+            .sum(axis=1)
+        )
+
+        invalid_rows = edited_range_df[
+            selected_counts > 1
+        ]
+
+        if len(invalid_rows) > 0:
+            invalid_names = "、".join(
+                invalid_rows["name_ja"]
+                .astype(str)
+                .tolist()
+            )
+
+            st.error(
+                "1～3は1つの化合物につき1つだけ選んでください。"
+                f" 複数選択：{invalid_names}"
+            )
+
+        else:
+            try:
+                save_df = df_registered.copy()
+
+                level_map = {}
+
+                for _, row in edited_range_df.iterrows():
+                    level = ""
+
+                    if bool(row["1"]):
+                        level = "1"
+                    elif bool(row["2"]):
+                        level = "2"
+                    elif bool(row["3"]):
+                        level = "3"
+
+                    level_map[
+                        str(row["compound_id"])
+                    ] = level
+
+                save_df["range_level"] = (
+                    save_df["compound_id"]
+                    .astype(str)
+                    .map(level_map)
+                    .fillna("")
+                )
+
+                commit_sha = commit_files(
+                    {
+                        COMPOUNDS_PATH:
+                        dataframe_to_csv_bytes(
+                            save_df,
+                            COMPOUND_COLUMNS,
+                        )
+                    },
+                    "Update compound range levels",
+                )
+
+                st.success(
+                    "出題範囲をGitHubへ保存しました！"
+                )
+                st.caption(
+                    f"commit: {commit_sha[:7]}"
+                )
+
+                st.rerun()
+
+            except Exception as e:
+                st.error(
+                    "出題範囲の保存中にエラーが発生しました。"
+                )
+                st.exception(e)
+
+else:
+    st.info(
+        "出題範囲を設定できる化合物がありません。"
     )
 
 
@@ -1001,6 +1199,7 @@ if len(compound_df) > 0:
                         "condition": condition,
                         "reaction_type": reaction_type,
                         "memo": reaction_memo,
+                        "custom": False,
                     }
                 ]
             )
@@ -1102,6 +1301,223 @@ if len(reaction_df) > 0:
 else:
     st.info(
         "まだ反応は登録されていません。"
+    )
+
+
+# =========================================================
+# カスタム出題する反応の設定
+# =========================================================
+
+st.divider()
+st.subheader("🎯 カスタム出題する反応")
+
+st.caption(
+    "その日の授業で扱った反応だけにチェックを入れて保存します。"
+)
+
+custom_df = reaction_df.copy()
+
+if len(custom_df) > 0:
+
+    compound_name_map = dict(
+        zip(
+            df_registered["compound_id"],
+            df_registered["name_ja"],
+        )
+    )
+
+    def normalize_custom(value):
+        if pd.isna(value):
+            return False
+
+        if isinstance(value, bool):
+            return value
+
+        return (
+            str(value)
+            .strip()
+            .lower()
+            in {
+                "true",
+                "1",
+                "yes",
+                "on",
+            }
+        )
+
+    custom_editor_df = custom_df.copy()
+
+    custom_editor_df[
+        "reactant_name"
+    ] = (
+        custom_editor_df[
+            "reactant_id"
+        ].map(compound_name_map)
+    )
+
+    custom_editor_df[
+        "product_name"
+    ] = (
+        custom_editor_df[
+            "product_id"
+        ].map(compound_name_map)
+    )
+
+    custom_editor_df["custom"] = (
+        custom_editor_df["custom"]
+        .apply(normalize_custom)
+    )
+
+    custom_editor_df = (
+        custom_editor_df[
+            [
+                "reaction_id",
+                "reactant_name",
+                "condition",
+                "product_name",
+                "reaction_type",
+                "custom",
+            ]
+        ]
+        .sort_values("reaction_id")
+        .reset_index(drop=True)
+    )
+
+    edited_custom_df = st.data_editor(
+        custom_editor_df,
+        use_container_width=True,
+        hide_index=True,
+        disabled=[
+            "reaction_id",
+            "reactant_name",
+            "condition",
+            "product_name",
+            "reaction_type",
+        ],
+        column_config={
+            "reaction_id": st.column_config.TextColumn(
+                "反応ID"
+            ),
+            "reactant_name": st.column_config.TextColumn(
+                "反応物"
+            ),
+            "condition": st.column_config.TextColumn(
+                "反応条件"
+            ),
+            "product_name": st.column_config.TextColumn(
+                "生成物"
+            ),
+            "reaction_type": st.column_config.TextColumn(
+                "反応の種類"
+            ),
+            "custom": st.column_config.CheckboxColumn(
+                "カスタム"
+            ),
+        },
+        key="custom_reaction_editor",
+    )
+
+    custom_save_col, custom_clear_col = st.columns(
+        [1, 1]
+    )
+
+    with custom_save_col:
+        save_custom = st.button(
+            "カスタムを保存",
+            type="primary",
+            key="save_custom_reactions",
+        )
+
+    with custom_clear_col:
+        clear_custom = st.button(
+            "カスタムをすべて解除",
+            key="clear_custom_reactions",
+        )
+
+    if save_custom:
+        try:
+            save_reaction_df = reaction_df.copy()
+
+            custom_map = dict(
+                zip(
+                    edited_custom_df[
+                        "reaction_id"
+                    ].astype(str),
+                    edited_custom_df[
+                        "custom"
+                    ].fillna(False).astype(bool),
+                )
+            )
+
+            save_reaction_df["custom"] = (
+                save_reaction_df[
+                    "reaction_id"
+                ]
+                .astype(str)
+                .map(custom_map)
+                .fillna(False)
+            )
+
+            commit_sha = commit_files(
+                {
+                    REACTIONS_PATH:
+                    dataframe_to_csv_bytes(
+                        save_reaction_df,
+                        REACTION_COLUMNS,
+                    )
+                },
+                "Update custom reactions",
+            )
+
+            st.success(
+                "カスタム反応をGitHubへ保存しました！"
+            )
+            st.caption(
+                f"commit: {commit_sha[:7]}"
+            )
+
+            st.rerun()
+
+        except Exception as e:
+            st.error(
+                "カスタム反応の保存中にエラーが発生しました。"
+            )
+            st.exception(e)
+
+    if clear_custom:
+        try:
+            save_reaction_df = reaction_df.copy()
+            save_reaction_df["custom"] = False
+
+            commit_sha = commit_files(
+                {
+                    REACTIONS_PATH:
+                    dataframe_to_csv_bytes(
+                        save_reaction_df,
+                        REACTION_COLUMNS,
+                    )
+                },
+                "Clear custom reactions",
+            )
+
+            st.success(
+                "カスタムをすべて解除しました！"
+            )
+            st.caption(
+                f"commit: {commit_sha[:7]}"
+            )
+
+            st.rerun()
+
+        except Exception as e:
+            st.error(
+                "カスタム解除中にエラーが発生しました。"
+            )
+            st.exception(e)
+
+else:
+    st.info(
+        "カスタム設定できる反応がありません。"
     )
 
 
