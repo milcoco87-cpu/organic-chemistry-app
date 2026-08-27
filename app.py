@@ -60,8 +60,20 @@ st.markdown(
         border: 3px solid #555555;
         border-radius: 10px !important;
         min-height: 105px;
+    }
+
+    /* 化合物ボックスの中身を上下中央にそろえる */
+    div[class*="st-key-compound_"] > div[data-testid="stVerticalBlock"] {
+        min-height: 99px;
+        justify-content: center;
+    }
+
+    /* 「？」だけのときもボックス中央に置く */
+    div[class*="st-key-compound_"] .blank {
+        min-height: 52px;
         display: flex;
         align-items: center;
+        justify-content: center;
     }
 
 
@@ -245,6 +257,11 @@ st.markdown(
             min-height: 92px !important;
         }
 
+        div[class*="st-key-compound_"] > div[data-testid="stVerticalBlock"] {
+            min-height: 86px !important;
+            justify-content: center !important;
+        }
+
         div[class*="st-key-compound_"] div[data-testid="stImage"] img {
             width: auto !important;
             max-width: 140px !important;
@@ -321,26 +338,28 @@ st.markdown(
 chart_types = chart_map_df["chart_type"].dropna().unique().tolist()
 question_styles = ["通常モード", "構造式モード"]
 
-title_col, control_col = st.columns([2, 1])
+st.title("有機化合物 系統図トレーニング")
 
-with title_col:
-    st.title("有機化合物 系統図トレーニング")
+name_col, chart_col, mode_col = st.columns([2, 1, 1])
 
-with control_col:
+with name_col:
+    student_name = st.text_input(
+        "氏名",
+        key="student_name_input",
+        placeholder="例：山田 花子",
+    )
+
+with chart_col:
     selected_chart = st.selectbox(
-        "練習する系統図を選んでください",
+        "系統図",
         chart_types,
     )
+
+with mode_col:
     selected_question_style = st.selectbox(
-        "出題モードを選んでください",
+        "出題モード",
         question_styles,
     )
-
-student_name = st.text_input(
-    "氏名を入力してください",
-    key="student_name_input",
-    placeholder="例：山田 花子",
-)
 
 
 # =========================
@@ -776,7 +795,7 @@ def show_question(question, hidden_part):
             if co_reactant:
                 co_reactant_html = (
                     f'<div class="co-reactant">{co_reactant}</div>'
-                    '<div class="co-reactant-arrow">→</div>'
+                    '<div class="co-reactant-arrow">--→</div>'
                 )
             else:
                 co_reactant_html = ""
@@ -787,7 +806,7 @@ def show_question(question, hidden_part):
             if co_reactant:
                 co_reactant_html = (
                     f'<div class="co-reactant">{co_reactant}</div>'
-                    '<div class="co-reactant-arrow">→</div>'
+                    '<div class="co-reactant-arrow">--→</div>'
                 )
             else:
                 co_reactant_html = ""
