@@ -349,6 +349,22 @@ for _, row in reactions_df.iterrows():
         "reaction_type": row["reaction_type"],
         "memo": row["memo"],
     }
+
+
+def clean_text(value):
+    """NaN・None・空文字を画面に表示しないための整形。"""
+    if pd.isna(value):
+        return ""
+    return str(value).strip()
+
+
+def format_reaction_label(reaction):
+    """反応名と条件のうち、値があるものだけを「｜」でつなぐ。"""
+    reaction_type = clean_text(reaction["reaction_type"])
+    condition = clean_text(reaction["condition"])
+
+    parts = [part for part in [reaction_type, condition] if part]
+    return "｜".join(parts)
 # =========================
 # 選択した系統図の化合物IDを取得
 # =========================
@@ -565,10 +581,7 @@ def show_question(question, hidden_part):
         reaction_id = question[key]
         reaction = reactions[reaction_id]
 
-        reaction_type = reaction["reaction_type"]
-        condition = reaction["condition"]
-
-        value = f"{reaction_type}｜{condition}"
+        value = format_reaction_label(reaction)
 
         if hidden_part == key and not st.session_state.show_answer:
             condition_html = (
@@ -672,9 +685,7 @@ def show_review_list():
                 item_label = "化合物名"
             else:
                 reaction = reactions[item["item_id"]]
-                display_name = (
-                    f'{reaction["reaction_type"]}｜{reaction["condition"]}'
-                )
+                display_name = format_reaction_label(reaction)
                 item_label = "反応条件"
 
             st.write(f"{item_label}：「{display_name}」")
