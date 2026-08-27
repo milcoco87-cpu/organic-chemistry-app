@@ -59,6 +59,9 @@ st.markdown(
         border-width: 10px;
         border: 3px solid #555555;
         border-radius: 10px !important;
+        min-height: 105px;
+        display: flex;
+        align-items: center;
     }
 
 
@@ -109,8 +112,15 @@ st.markdown(
         font-size: 25px;
         font-weight: 900;
         text-align: center;
-        padding: 0;
+        padding: 0 8px;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
     }
+    .compound.long-name,
+    .answer.long-name {
+        font-size: 20px !important;
+    }
+
     .condition {
         font-size: 20px;
         font-weight: 600;
@@ -138,6 +148,8 @@ st.markdown(
         margin: 10px;
         background-color: #eefaf3;
         color: #000000;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
     }
     .reaction-row {
         display: flex;
@@ -229,6 +241,10 @@ st.markdown(
             font-size: 16px !important;
         }
 
+        div[class*="st-key-compound_"] {
+            min-height: 92px !important;
+        }
+
         div[class*="st-key-compound_"] div[data-testid="stImage"] img {
             width: auto !important;
             max-width: 140px !important;
@@ -239,6 +255,11 @@ st.markdown(
         div[class*="st-key-compound_"] .compound,
         div[class*="st-key-compound_"] .answer {
             font-size: 19px !important;
+        }
+
+        div[class*="st-key-compound_"] .compound.long-name,
+        div[class*="st-key-compound_"] .answer.long-name {
+            font-size: 16px !important;
         }
 
         div[class*="st-key-compound_"] .answer {
@@ -698,6 +719,7 @@ def show_question(question, hidden_part):
         compound_id = question[key]
         value = compounds[compound_id]["name"]
         image_path = compounds[compound_id]["image"]
+        name_class = "long-name" if len(str(value)) >= 12 else ""
 
         with st.container(border=False, key=f"compound_{key}"):
             if hidden_part == key and not st.session_state.show_answer:
