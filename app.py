@@ -17,8 +17,11 @@ chart_map_df = pd.read_csv("compound_chart_map.csv")
 if "range_level" not in compounds_df.columns:
     compounds_df["range_level"] = ""
 
-if "custom" not in reactions_df.columns:
-    reactions_df["custom"] = False
+if "custom_a" not in reactions_df.columns:
+    reactions_df["custom_a"] = False
+
+if "custom_b" not in reactions_df.columns:
+    reactions_df["custom_b"] = False
 
 
 
@@ -363,7 +366,8 @@ range_options = [
     "エステルまで",
     "芳香族まで",
     "全部",
-    "カスタム",
+    "カスタムA",
+    "カスタムB",
 ]
 
 st.title("有機化合物 系統図トレーニング")
@@ -574,7 +578,7 @@ if selected_range in range_level_map:
         & allowed_compound_ids
     )
 
-elif selected_range == "カスタム":
+elif selected_range in {"カスタムA", "カスタムB"}:
     # カスタムは脂肪族・芳香族をまたいでよいので、系統図は無視する
     selected_compound_ids = set(
         compounds_df["compound_id"]
@@ -605,8 +609,12 @@ def normalize_custom(value):
     )
 
 
-reactions_df["custom_normalized"] = (
-    reactions_df["custom"].apply(normalize_custom)
+reactions_df["custom_a_normalized"] = (
+    reactions_df["custom_a"].apply(normalize_custom)
+)
+
+reactions_df["custom_b_normalized"] = (
+    reactions_df["custom_b"].apply(normalize_custom)
 )
 
 connections = []
@@ -617,10 +625,16 @@ for _, row in reactions_df.iterrows():
         row["reactant_id"] in selected_compound_ids
         and row["product_id"] in selected_compound_ids
     ):
-        # カスタム時だけ custom=True の反応に限定
+        # カスタム時だけ、選択したA/Bの反応に限定
         if (
-            selected_range == "カスタム"
-            and not row["custom_normalized"]
+            selected_range == "カスタムA"
+            and not row["custom_a_normalized"]
+        ):
+            continue
+
+        if (
+            selected_range == "カスタムB"
+            and not row["custom_b_normalized"]
         ):
             continue
 
@@ -725,7 +739,7 @@ def make_quiz_items():
     # 選んだ反応は基本1回ずつ使う。
     # つながっている反応どうしは、重複しない範囲で2反応問題にまとめる。
     # 何を隠すかは問題ごとにランダムに1か所だけ選ぶ。
-    if selected_range == "カスタム":
+    if selected_range in {"カスタムA", "カスタムB"}:
         st.session_state.custom_questions = {}
 
         if len(connections) == 0:
@@ -958,8 +972,10 @@ def lock_run_info():
         st.session_state.run_name = st.session_state.student_name_input.strip()
 
     if st.session_state.run_chart == "":
-        if selected_range == "カスタム":
-            st.session_state.run_chart = "カスタム（脂肪族・芳香族混在可）"
+        if selected_range in {"カスタムA", "カスタムB"}:
+            st.session_state.run_chart = (
+                f"{selected_range}（脂肪族・芳香族混在可）"
+            )
         else:
             st.session_state.run_chart = selected_chart
 
@@ -1223,9 +1239,9 @@ with left_col:
     if st.session_state.mode == "normal":
 
         if len(st.session_state.quiz_items) == 0:
-            if selected_range == "カスタム":
+            if selected_range in {"カスタムA", "カスタムB"}:
                 st.warning(
-                    "この系統図ではカスタム反応が選択されていません。"
+                    f"{selected_range}には反応が選択されていません。"
                     " 先生アプリで反応を選んで保存してください。"
                 )
             else:

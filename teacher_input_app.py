@@ -51,7 +51,8 @@ REACTION_COLUMNS = [
     "condition",
     "reaction_type",
     "memo",
-    "custom",
+    "custom_a",
+    "custom_b",
 ]
 
 
@@ -1199,7 +1200,8 @@ if len(compound_df) > 0:
                         "condition": condition,
                         "reaction_type": reaction_type,
                         "memo": reaction_memo,
-                        "custom": False,
+                        "custom_a": False,
+                        "custom_b": False,
                     }
                 ]
             )
@@ -1312,7 +1314,7 @@ st.divider()
 st.subheader("🎯 カスタム出題する反応")
 
 st.caption(
-    "その日の授業で扱った反応だけにチェックを入れて保存します。"
+    "クラスや授業進度に合わせて、カスタムA・カスタムBを別々に保存できます。"
 )
 
 custom_df = reaction_df.copy()
@@ -1363,8 +1365,13 @@ if len(custom_df) > 0:
         ].map(compound_name_map)
     )
 
-    custom_editor_df["custom"] = (
-        custom_editor_df["custom"]
+    custom_editor_df["custom_a"] = (
+        custom_editor_df["custom_a"]
+        .apply(normalize_custom)
+    )
+
+    custom_editor_df["custom_b"] = (
+        custom_editor_df["custom_b"]
         .apply(normalize_custom)
     )
 
@@ -1376,7 +1383,8 @@ if len(custom_df) > 0:
                 "condition",
                 "product_name",
                 "reaction_type",
-                "custom",
+                "custom_a",
+                "custom_b",
             ]
         ]
         .sort_values("reaction_id")
@@ -1410,51 +1418,80 @@ if len(custom_df) > 0:
             "reaction_type": st.column_config.TextColumn(
                 "反応の種類"
             ),
-            "custom": st.column_config.CheckboxColumn(
-                "カスタム"
+            "custom_a": st.column_config.CheckboxColumn(
+                "カスタムA"
+            ),
+            "custom_b": st.column_config.CheckboxColumn(
+                "カスタムB"
             ),
         },
         key="custom_reaction_editor",
     )
 
-    custom_save_col, custom_clear_col = st.columns(
-        [1, 1]
+    save_col, clear_a_col, clear_b_col = st.columns(
+        [1.2, 1, 1]
     )
 
-    with custom_save_col:
+    with save_col:
         save_custom = st.button(
-            "カスタムを保存",
+            "カスタムA・Bを保存",
             type="primary",
             key="save_custom_reactions",
         )
 
-    with custom_clear_col:
-        clear_custom = st.button(
-            "カスタムをすべて解除",
-            key="clear_custom_reactions",
+    with clear_a_col:
+        clear_custom_a = st.button(
+            "Aをすべて解除",
+            key="clear_custom_a",
+        )
+
+    with clear_b_col:
+        clear_custom_b = st.button(
+            "Bをすべて解除",
+            key="clear_custom_b",
         )
 
     if save_custom:
         try:
             save_reaction_df = reaction_df.copy()
 
-            custom_map = dict(
+            custom_a_map = dict(
                 zip(
                     edited_custom_df[
                         "reaction_id"
                     ].astype(str),
                     edited_custom_df[
-                        "custom"
+                        "custom_a"
                     ].fillna(False).astype(bool),
                 )
             )
 
-            save_reaction_df["custom"] = (
+            custom_b_map = dict(
+                zip(
+                    edited_custom_df[
+                        "reaction_id"
+                    ].astype(str),
+                    edited_custom_df[
+                        "custom_b"
+                    ].fillna(False).astype(bool),
+                )
+            )
+
+            save_reaction_df["custom_a"] = (
                 save_reaction_df[
                     "reaction_id"
                 ]
                 .astype(str)
-                .map(custom_map)
+                .map(custom_a_map)
+                .fillna(False)
+            )
+
+            save_reaction_df["custom_b"] = (
+                save_reaction_df[
+                    "reaction_id"
+                ]
+                .astype(str)
+                .map(custom_b_map)
                 .fillna(False)
             )
 
@@ -1466,11 +1503,11 @@ if len(custom_df) > 0:
                         REACTION_COLUMNS,
                     )
                 },
-                "Update custom reactions",
+                "Update custom A and B reactions",
             )
 
             st.success(
-                "カスタム反応をGitHubへ保存しました！"
+                "カスタムA・BをGitHubへ保存しました！"
             )
             st.caption(
                 f"commit: {commit_sha[:7]}"
@@ -1484,10 +1521,10 @@ if len(custom_df) > 0:
             )
             st.exception(e)
 
-    if clear_custom:
+    if clear_custom_a:
         try:
             save_reaction_df = reaction_df.copy()
-            save_reaction_df["custom"] = False
+            save_reaction_df["custom_a"] = False
 
             commit_sha = commit_files(
                 {
@@ -1497,11 +1534,11 @@ if len(custom_df) > 0:
                         REACTION_COLUMNS,
                     )
                 },
-                "Clear custom reactions",
+                "Clear custom A reactions",
             )
 
             st.success(
-                "カスタムをすべて解除しました！"
+                "カスタムAをすべて解除しました！"
             )
             st.caption(
                 f"commit: {commit_sha[:7]}"
@@ -1511,7 +1548,38 @@ if len(custom_df) > 0:
 
         except Exception as e:
             st.error(
-                "カスタム解除中にエラーが発生しました。"
+                "カスタムA解除中にエラーが発生しました。"
+            )
+            st.exception(e)
+
+    if clear_custom_b:
+        try:
+            save_reaction_df = reaction_df.copy()
+            save_reaction_df["custom_b"] = False
+
+            commit_sha = commit_files(
+                {
+                    REACTIONS_PATH:
+                    dataframe_to_csv_bytes(
+                        save_reaction_df,
+                        REACTION_COLUMNS,
+                    )
+                },
+                "Clear custom B reactions",
+            )
+
+            st.success(
+                "カスタムBをすべて解除しました！"
+            )
+            st.caption(
+                f"commit: {commit_sha[:7]}"
+            )
+
+            st.rerun()
+
+        except Exception as e:
+            st.error(
+                "カスタムB解除中にエラーが発生しました。"
             )
             st.exception(e)
 
