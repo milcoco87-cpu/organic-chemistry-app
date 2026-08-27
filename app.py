@@ -518,11 +518,43 @@ def get_target_hidden_parts():
 
 
 def make_quiz_items():
+    # 構造式モード：
+    # 1回のプレイ中は、同じ化合物を1回だけ出題する。
+    # 同じ化合物が複数の反応経路に登場する場合は、
+    # その中から1つの経路をランダムに選ぶ。
+    # 「もう一度最初から」で作り直されるため、
+    # 次の周回では別ルートから出る可能性がある。
+    if selected_question_style == "構造式モード":
+        candidates_by_compound = {}
+
+        for question in questions:
+            for hidden_part in ["before", "answer", "after"]:
+                compound_id = question[hidden_part]
+
+                if compound_id not in candidates_by_compound:
+                    candidates_by_compound[compound_id] = []
+
+                candidates_by_compound[compound_id].append(
+                    {
+                        "question_id": question["id"],
+                        "hidden_part": hidden_part,
+                    }
+                )
+
+        items = [
+            random.choice(candidates)
+            for candidates in candidates_by_compound.values()
+        ]
+
+        random.shuffle(items)
+        return items
+
+    # 通常モード：
+    # 従来どおり、5か所すべてを出題対象にする。
     items = []
-    target_hidden_parts = get_target_hidden_parts()
 
     for question in questions:
-        for hidden_part in target_hidden_parts:
+        for hidden_part in all_hidden_parts:
             items.append(
                 {
                     "question_id": question["id"],
