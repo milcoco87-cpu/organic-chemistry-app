@@ -1,10 +1,10 @@
 ﻿compound_id,name_ja,name_en,formula,image,memo,range_level
-cmp_006,エタノール,ethanol,C2H6O,ethanol.png,,
-cmp_010,アセトアルデヒド,acetaldehyde,C2H4O,acetaldehyde.png,,
-cmp_001,ナトリウムエトキシド,sodium ethoxide,C2H5ONa,sodium ethoxide.png,OとNaは結合線(価標)で結ばない,
-cmp_007,エチレン,ethene,C2H4,ethene.png,,
-cmp_018,酢酸,acetic acid,C2H4O2,acetic acid.png,,
-cmp_022,ベンゼン,benzene,C6H6,benzene.png,,
+cmp_006,エタノール,ethanol,C2H6O,ethanol.png,,2
+cmp_010,アセトアルデヒド,acetaldehyde,C2H4O,acetaldehyde.png,,2
+cmp_001,ナトリウムエトキシド,sodium ethoxide,C2H5ONa,sodium ethoxide.png,OとNaは結合線(価標)で結ばない,2
+cmp_007,エチレン,ethene,C2H4,ethene.png,,1
+cmp_018,酢酸,acetic acid,C2H4O2,acetic acid.png,,2
+cmp_022,ベンゼン,benzene,C6H6,benzene.png,,3
 cmp_075,ニトロベンゼン,nitrobenzene,C6H5NO2,nitrobenzene.png,,
 cmp_081,アニリン,aniline,C6H5NH2,aniline.png,,
 cmp_002,ジエチルエーテル,diethyl ether,C2H5OC2H5,diethyl ether.png,,
@@ -12,27 +12,27 @@ cmp_003,エタン,ethane,C2H6,ethane.png,,1
 cmp_004,クロロエタン,chloroethane,C2H5Cl,chloroethane.png,,1
 cmp_005,"1,2-ジブロモエタン","1,2-dibromoethane",C2H4Br2,"1,2-dibromoethane.png",,1
 cmp_008,ポリエチレン,polyethylene,(C2H4)n,polyethylene.png,,1
-cmp_009,"1,2-ジクロロエタン","1,2-dichloroethane",C2H4Cl2,"1,2-dichloroethane.png",,
+cmp_009,"1,2-ジクロロエタン","1,2-dichloroethane",C2H4Cl2,"1,2-dichloroethane.png",,1
 cmp_011,塩化ビニル,vinyl chloride,C2H3Cl,vinyl chloride.png,,
 cmp_012,ポリ塩化ビニル,polyvinyl chloride,(C2H3Cl)n,polyvinyl chloride.png,,
 cmp_013,酢酸エチル,ethyl acetate,CH3COOC2H5,ethyl acetate.png,,
 cmp_014,ビニルアルコール,vinyl alcohol,(C2H3OH)n,vinyl alcohol.png,不安定なため存在できない。エノール型,
 cmp_015,アクリロニトリル,acrylonitrile,C2H3CN,acrylonitrile.png,,
 cmp_016,ポリアクリロニトリル,polyacrylonitrile,(C2H3CN)n,polyacrylonitrile.png,,
-cmp_017,酢酸ナトリウム,sodium acetate,CH3COONa,sodium acetate.png,OとNaは結合線(価標)で結ばない,
-cmp_019,アセチレン,acetylene,C2H2,acetylene.png,,
+cmp_017,酢酸ナトリウム,sodium acetate,CH3COONa,sodium acetate.png,OとNaは結合線(価標)で結ばない,2
+cmp_019,アセチレン,acetylene,C2H2,acetylene.png,,1
 cmp_020,酢酸ビニル,vinyl acetate,C2H3OCOCH3,vinyl acetate.png,,
 cmp_021,ポリ酢酸ビニル,polyvinyl acetate,(C2H3OCOCH3)n,polyvinyl acetate.png,,
-cmp_023,プロペン（プロピレン）,propene,C3H6,propene.png,,
+cmp_023,プロペン（プロピレン）,propene,C3H6,propene.png,,1
 cmp_024,ポリプロペン（ポリプロピレン）,polypropylene,(C3H6)n,polypropylene.png,,
 cmp_025,クメン,cumene,C6H5C3H7,cumene.png,,
-cmp_026,2-プロパノール,2-propanol,C3H7OH,2-propanol.png,,
-cmp_027,1-プロパノール,1-propanol,C3H7OH,1-propanol.png,,
+cmp_026,2-プロパノール,2-propanol,C3H7OH,2-propanol.png,,2
+cmp_027,1-プロパノール,1-propanol,C3H7OH,1-propanol.png,,2
 cmp_028,無水酢酸,acetic anhydride,(CH3CO)2O,acetic anhydride.png,,
-cmp_029,クメンヒドロペルオキシド,cumene hydroperoxide,C6H5C3H7O2,cumene hydroperoxide.png,,
-cmp_030,フェノール,phenol,C6H5OH,phenol.png,,
+cmp_029,クメンヒドロペルオキシド,cumene hydroperoxide,C6H5C3H7O2,cumene hydroperoxide.png,,3
+cmp_030,フェノール,phenol,C6H5OH,phenol.png,,3
 cmp_031,酢酸カルシウム,calcium acetate,(CH3COO)2Ca,calcium acetate.png,,
-cmp_032,アセトン,acetone,CH3COCH3,acetone.png,,
+cmp_032,アセトン,acetone,CH3COCH3,acetone.png,,2
 cmp_033,プロピオンアルデヒド,propionaldehyde,C2H5CHO,propionaldehyde.png,,
 cmp_034,プロピオン酸,propionic acid,C2H5COOH,propionic acid.png,,
 cmp_035,ギ酸,formic acid,HCHO,formic acid.png,,
@@ -41,10 +41,10 @@ cmp_037,マレイン酸,maleic acid,C4H4O4,maleic acid.png,虎に踏まれて稀
 cmp_038,フマル酸,fumaric acid,C4H4O4,fumaric acid.png,虎に踏まれて稀に死す,
 cmp_039,コハク酸,succinic acid,C4H604,succinic acid.png,,
 cmp_040,無水マレイン酸,maleic anhydride,C4H2O3,maleic anhydride.png,,
-cmp_041,カーバイド（炭化カルシウム）,calcium carbide,CaC2,calcium carbide.png,,
+cmp_041,カーバイド（炭化カルシウム）,calcium carbide,CaC2,calcium carbide.png,,1
 cmp_042,ホルムアルデヒド,formaldehyde,HCHO,formaldehyde.png,,
-cmp_043,メタノール,methanol,CH3OH,methanol.png,,
-cmp_044,メタン,methane,CH4,methane.png,,
+cmp_043,メタノール,methanol,CH3OH,methanol.png,,2
+cmp_044,メタン,methane,CH4,methane.png,,1
 cmp_045,クロロメタン,chloromethane,CH3Cl,chloromethane.png,,
 cmp_046,ジクロロメタン,dichloromethane,CH2Cl2,dichloromethane.png,,
 cmp_047,クロロホルム（トリクロロメタン）,chloroform,CHCl3,chloroform.png,,
