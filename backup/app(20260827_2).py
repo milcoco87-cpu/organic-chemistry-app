@@ -574,16 +574,8 @@ if selected_range in range_level_map:
         & allowed_compound_ids
     )
 
-elif selected_range == "カスタム":
-    # カスタムは脂肪族・芳香族をまたいでよいので、系統図は無視する
-    selected_compound_ids = set(
-        compounds_df["compound_id"]
-        .dropna()
-        .astype(str)
-    )
-
 else:
-    # 「全部」は選択した系統図内をすべて出題対象にする
+    # 「全部」と「カスタム」は、系統図内の化合物を母集団にする
     selected_compound_ids = chart_compound_ids
 
 # =========================
@@ -722,120 +714,42 @@ def get_target_hidden_parts():
 
 def make_quiz_items():
     # カスタム：
-    # 選んだ反応は基本1回ずつ使う。
-    # つながっている反応どうしは、重複しない範囲で2反応問題にまとめる。
-    # 何を隠すかは問題ごとにランダムに1か所だけ選ぶ。
+    # 選択した反応を1本問題として出題し、
+    # さらに選択反応どうしが連続する場合は2本問題も混ぜる。
     if selected_range == "カスタム":
-        st.session_state.custom_questions = {}
+        items = []
 
-        if len(connections) == 0:
-            return []
+        custom_single_questions = make_custom_single_questions()
+        st.session_state.custom_questions = custom_single_questions
 
-        # 反応順をランダム化して、同じ反応を2回使わないようにペアを作る
-        shuffled_connections = connections.copy()
-        random.shuffle(shuffled_connections)
+        if selected_question_style == "構造式モード":
+            single_hidden_parts = ["before", "after"]
+            double_hidden_parts = ["before", "answer", "after"]
+        else:
+            single_hidden_parts = ["before", "condition1", "after"]
+            double_hidden_parts = all_hidden_parts
 
-        used_reaction_ids = set()
-        custom_problem_defs = []
-
-        for first_connection in shuffled_connections:
-            first_reaction_id = first_connection["reaction"]
-
-            if first_reaction_id in used_reaction_ids:
-                continue
-
-            # first の生成物から続く、未使用の反応を候補にする
-            pair_candidates = [
-                second_connection
-                for second_connection in shuffled_connections
-                if (
-                    second_connection["reaction"] not in used_reaction_ids
-                    and second_connection["reaction"] != first_reaction_id
-                    and first_connection["to"] == second_connection["from"]
-                    and first_connection["from"] != second_connection["to"]
-                )
-            ]
-
-            # つながる反応があれば2反応問題にまとめる
-            if pair_candidates:
-                second_connection = random.choice(pair_candidates)
-
-                question_id = (
-                    f"custom_pair_{first_reaction_id}_"
-                    f"{second_connection['reaction']}"
-                )
-
-                st.session_state.custom_questions[question_id] = {
-                    "id": question_id,
-                    "layout": "three",
-                    "before": first_connection["from"],
-                    "condition1": first_reaction_id,
-                    "answer": first_connection["to"],
-                    "condition2": second_connection["reaction"],
-                    "after": second_connection["to"],
-                }
-
-                custom_problem_defs.append(
+        # 1反応問題
+        for question_id in custom_single_questions:
+            for hidden_part in single_hidden_parts:
+                items.append(
                     {
                         "question_id": question_id,
-                        "layout": "three",
-                    }
-                )
-
-                used_reaction_ids.add(first_reaction_id)
-                used_reaction_ids.add(second_connection["reaction"])
-
-            else:
-                # つながる相手がなければ1反応問題
-                question_id = f"custom_one_{first_reaction_id}"
-
-                st.session_state.custom_questions[question_id] = {
-                    "id": question_id,
-                    "layout": "two",
-                    "before": first_connection["from"],
-                    "condition1": first_reaction_id,
-                    "after": first_connection["to"],
-                }
-
-                custom_problem_defs.append(
-                    {
-                        "question_id": question_id,
+                        "hidden_part": hidden_part,
                         "layout": "two",
                     }
                 )
 
-                used_reaction_ids.add(first_reaction_id)
-
-        items = []
-
-        for problem_def in custom_problem_defs:
-            if problem_def["layout"] == "two":
-                if selected_question_style == "構造式モード":
-                    hidden_part = random.choice(
-                        ["before", "after"]
-                    )
-                else:
-                    hidden_part = random.choice(
-                        ["before", "condition1", "after"]
-                    )
-
-            else:
-                if selected_question_style == "構造式モード":
-                    hidden_part = random.choice(
-                        ["before", "answer", "after"]
-                    )
-                else:
-                    hidden_part = random.choice(
-                        all_hidden_parts
-                    )
-
-            items.append(
-                {
-                    "question_id": problem_def["question_id"],
-                    "hidden_part": hidden_part,
-                    "layout": problem_def["layout"],
-                }
-            )
+        # 2反応問題（選択した反応がつながっている場合だけ）
+        for question in questions:
+            for hidden_part in double_hidden_parts:
+                items.append(
+                    {
+                        "question_id": question["id"],
+                        "hidden_part": hidden_part,
+                        "layout": "three",
+                    }
+                )
 
         random.shuffle(items)
         return items
@@ -958,10 +872,7 @@ def lock_run_info():
         st.session_state.run_name = st.session_state.student_name_input.strip()
 
     if st.session_state.run_chart == "":
-        if selected_range == "カスタム":
-            st.session_state.run_chart = "カスタム（脂肪族・芳香族混在可）"
-        else:
-            st.session_state.run_chart = selected_chart
+        st.session_state.run_chart = selected_chart
 
     if st.session_state.run_question_style == "":
         st.session_state.run_question_style = selected_question_style
@@ -1126,10 +1037,7 @@ def get_question_by_id(question_id):
 
     if (
         isinstance(question_id, str)
-        and (
-            question_id.startswith("custom_one_")
-            or question_id.startswith("custom_pair_")
-        )
+        and question_id.startswith("custom_one_")
     ):
         return st.session_state.custom_questions[question_id]
 
