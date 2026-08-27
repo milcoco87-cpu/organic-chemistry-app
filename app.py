@@ -353,6 +353,9 @@ if (
     if "quiz_items" in st.session_state:
         del st.session_state.quiz_items
 
+    if "two_questions" in st.session_state:
+        del st.session_state.two_questions
+
     st.rerun()
 
 
@@ -494,6 +497,23 @@ def make_questions_from_connections():
 
 questions = make_questions_from_connections()
 
+
+def make_two_compound_question(connection, hidden_compound_id):
+    """3化合物ルートに入れない化合物用の、1反応だけの構造式問題。"""
+    if connection["from"] == hidden_compound_id:
+        hidden_part = "before"
+    else:
+        hidden_part = "after"
+
+    return {
+        "id": f"two_{connection['reaction']}_{hidden_compound_id}",
+        "layout": "two",
+        "before": connection["from"],
+        "condition1": connection["reaction"],
+        "after": connection["to"],
+        "hidden_part": hidden_part,
+    }
+
 all_hidden_parts = [
     "before",
     "condition1",
@@ -519,27 +539,53 @@ def get_target_hidden_parts():
 
 def make_quiz_items():
     # 構造式モード：
-    # 1回のプレイ中は、同じ化合物を1回だけ出題する。
-    # 同じ化合物が複数の反応経路に登場する場合は、
-    # その中から1つの経路をランダムに選ぶ。
-    # 「もう一度最初から」で作り直されるため、
-    # 次の周回では別ルートから出る可能性がある。
+    # 選択した系統図に登録されている化合物を、1周につき各1回出題する。
+    # まず3化合物ルートから候補を集め、そこに入れない化合物は
+    # 1反応だけの2化合物表示（例：55→56、57→58）で補う。
     if selected_question_style == "構造式モード":
         candidates_by_compound = {}
 
+        # 3化合物ルートから候補を集める
         for question in questions:
             for hidden_part in ["before", "answer", "after"]:
                 compound_id = question[hidden_part]
-
-                if compound_id not in candidates_by_compound:
-                    candidates_by_compound[compound_id] = []
-
-                candidates_by_compound[compound_id].append(
+                candidates_by_compound.setdefault(compound_id, []).append(
                     {
                         "question_id": question["id"],
                         "hidden_part": hidden_part,
+                        "layout": "three",
                     }
                 )
+
+        # 3化合物ルートに入らない化合物は、単独反応から候補を作る
+        two_questions = {}
+        for compound_id in selected_compound_ids:
+            if compound_id in candidates_by_compound:
+                continue
+
+            matching_connections = [
+                connection
+                for connection in connections
+                if (
+                    connection["from"] == compound_id
+                    or connection["to"] == compound_id
+                )
+            ]
+
+            if matching_connections:
+                for connection in matching_connections:
+                    q = make_two_compound_question(connection, compound_id)
+                    two_questions[q["id"]] = q
+                    candidates_by_compound.setdefault(compound_id, []).append(
+                        {
+                            "question_id": q["id"],
+                            "hidden_part": q["hidden_part"],
+                            "layout": "two",
+                        }
+                    )
+
+        # 後で get_question_by_id から参照できるよう保存
+        st.session_state.two_questions = two_questions
 
         items = [
             random.choice(candidates)
@@ -559,6 +605,7 @@ def make_quiz_items():
                 {
                     "question_id": question["id"],
                     "hidden_part": hidden_part,
+                    "layout": "three",
                 }
             )
 
@@ -744,14 +791,22 @@ def show_question(question, hidden_part):
             if memo:
                 st.info(f"メモ：{memo}")
             
-    show_compound("before")
-    show_condition("condition1")
-    show_compound("answer")
-    show_condition("condition2")
-    show_compound("after")
+    if question.get("layout") == "two":
+        show_compound("before")
+        show_condition("condition1")
+        show_compound("after")
+    else:
+        show_compound("before")
+        show_condition("condition1")
+        show_compound("answer")
+        show_condition("condition2")
+        show_compound("after")
 
 
 def get_question_by_id(question_id):
+    if isinstance(question_id, str) and question_id.startswith("two_"):
+        return st.session_state.two_questions[question_id]
+
     return next(
         question
         for question in questions
@@ -796,6 +851,17 @@ def find_review_candidates(review_item):
                         "hidden_part": hidden_part,
                     }
                 )
+
+    if review_item["item_type"] == "compound":
+        for q in st.session_state.get("two_questions", {}).values():
+            for hidden_part in ["before", "after"]:
+                if q.get(hidden_part) == review_item["item_id"]:
+                    candidates.append(
+                        {
+                            "question_id": q["id"],
+                            "hidden_part": hidden_part,
+                        }
+                    )
 
     return candidates
 
