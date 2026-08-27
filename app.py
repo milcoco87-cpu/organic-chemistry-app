@@ -669,16 +669,18 @@ def show_question(question, hidden_part):
             else:
                 co_reactant_html = ""
 
+        reaction_html = (
+            f'<div class="reaction-row">'
+            f'{co_reactant_html}'
+            f'<div class="vertical-arrow-wrap">'
+            f'<div class="arrow">↓</div>'
+            f'</div>'
+            f'{condition_html}'
+            f'</div>'
+        )
+
         st.markdown(
-            f"""
-            <div class="reaction-row">
-                {co_reactant_html}
-                <div class="vertical-arrow-wrap">
-                    <div class="arrow">↓</div>
-                </div>
-                {condition_html}
-            </div>
-            """,
+            reaction_html,
             unsafe_allow_html=True,
         )
 
