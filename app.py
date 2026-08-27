@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import random
+import re
 from datetime import datetime, timezone, timedelta
 
 
@@ -145,6 +146,25 @@ st.markdown(
         gap: 12px;
         margin: 10px;
     }
+    .co-reactant {
+        font-size: 18px;
+        font-weight: 700;
+        text-align: right;
+        white-space: nowrap;
+        color: #222222;
+    }
+    .co-reactant-arrow {
+        font-size: 30px;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    .vertical-arrow-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+    }
     .condition-box {
         min-width: 5em;
         padding: 8px 12px;
@@ -229,6 +249,14 @@ st.markdown(
         .reaction-row {
             margin: 0 !important;
             gap: 6px !important;
+        }
+
+        .co-reactant {
+            font-size: 14px !important;
+        }
+
+        .co-reactant-arrow {
+            font-size: 22px !important;
         }
 
         .condition,
@@ -358,10 +386,38 @@ def clean_text(value):
     return str(value).strip()
 
 
+def extract_co_reactant(memo):
+    """memo の「共反応物：○○」から共反応物名を取り出す。"""
+    memo_text = clean_text(memo)
+    if not memo_text:
+        return ""
+
+    match = re.search(r"共反応物[：:]\s*([^\n、,]+)", memo_text)
+    if match:
+        return match.group(1).strip()
+
+    return ""
+
+
+def clean_reaction_memo(memo):
+    """共反応物の記述は画面の横表示に回し、その他のメモだけ残す。"""
+    memo_text = clean_text(memo)
+    if not memo_text:
+        return ""
+
+    memo_text = re.sub(r"共反応物[：:]\s*[^\n、,]+", "", memo_text)
+    memo_text = memo_text.strip(" 、,\n")
+    return memo_text
+
+
 def format_reaction_label(reaction):
-    """反応名と条件のうち、値があるものだけを「｜」でつなぐ。"""
+    """反応名と条件を整形。共反応物と同じ条件文字列は重複表示しない。"""
     reaction_type = clean_text(reaction["reaction_type"])
     condition = clean_text(reaction["condition"])
+    co_reactant = extract_co_reactant(reaction["memo"])
+
+    if co_reactant and condition == co_reactant:
+        condition = ""
 
     parts = [part for part in [reaction_type, condition] if part]
     return "｜".join(parts)
@@ -582,25 +638,44 @@ def show_question(question, hidden_part):
         reaction = reactions[reaction_id]
 
         value = format_reaction_label(reaction)
+        co_reactant = extract_co_reactant(reaction["memo"])
 
         if hidden_part == key and not st.session_state.show_answer:
             condition_html = (
                 '<div class="blank condition-box">反応名・反応条件は？</div>'
             )
+            co_reactant_html = ""
 
         elif hidden_part == key:
             condition_html = (
                 f'<div class="answer condition-box">{value}</div>'
             )
+            if co_reactant:
+                co_reactant_html = (
+                    f'<div class="co-reactant">{co_reactant}</div>'
+                    '<div class="co-reactant-arrow">→</div>'
+                )
+            else:
+                co_reactant_html = ""
         else:
             condition_html = (
                 f'<div class="condition condition-box">{value}</div>'
             )
+            if co_reactant:
+                co_reactant_html = (
+                    f'<div class="co-reactant">{co_reactant}</div>'
+                    '<div class="co-reactant-arrow">→</div>'
+                )
+            else:
+                co_reactant_html = ""
 
         st.markdown(
             f"""
             <div class="reaction-row">
-                <div class="arrow">↓</div>
+                {co_reactant_html}
+                <div class="vertical-arrow-wrap">
+                    <div class="arrow">↓</div>
+                </div>
                 {condition_html}
             </div>
             """,
@@ -608,9 +683,9 @@ def show_question(question, hidden_part):
         )
 
         if hidden_part == key and st.session_state.show_answer:
-            memo = reactions[reaction_id]["memo"]
+            memo = clean_reaction_memo(reaction["memo"])
 
-            if pd.notna(memo) and str(memo).strip() != "":
+            if memo:
                 st.info(f"メモ：{memo}")
             
     show_compound("before")
@@ -686,6 +761,9 @@ def show_review_list():
             else:
                 reaction = reactions[item["item_id"]]
                 display_name = format_reaction_label(reaction)
+                co_reactant = extract_co_reactant(reaction["memo"])
+                if co_reactant:
+                    display_name += f"（共反応物：{co_reactant}）"
                 item_label = "反応条件"
 
             st.write(f"{item_label}：「{display_name}」")
