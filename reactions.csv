@@ -6,7 +6,7 @@ rxn_004,cmp_006,cmp_010,ニクロム酸カリウム,酸化,,False,False
 rxn_005,cmp_010,cmp_018,ニクロム酸カリウム,酸化,,False,False
 rxn_006,cmp_022,cmp_075,濃硫酸＋濃硝酸,ニトロ化,,False,True
 rxn_007,cmp_075,cmp_081,濃塩酸＋Sn,還元,Snの代わりにFeでもOK,False,True
-rxn_008,cmp_006,cmp_002,130〜140℃・濃硫酸,脱水,,False,False
+rxn_008,cmp_006,cmp_002,130〜140℃・濃硫酸,分子間脱水,,False,False
 rxn_009,cmp_006,cmp_007,160〜170℃・濃硫酸,分子内脱水,,False,False
 rxn_010,cmp_007,cmp_003,H2・Pt触媒,水素付加,,False,False
 rxn_011,cmp_007,cmp_004,HCl,付加,,False,False
