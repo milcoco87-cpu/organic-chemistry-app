@@ -24,7 +24,7 @@ rxn_022,cmp_015,cmp_016,,付加重合,,False,False
 rxn_023,cmp_019,cmp_020,CH3COOH・(CH3COO)2Zn触媒,付加,,False,False
 rxn_024,cmp_020,cmp_021,,付加重合,,False,False
 rxn_025,cmp_021,cmp_052,NaOH,けん化,,False,False
-rxn_026,cmp_052,cmp_053,HCHO・50%アセタール化,アセタール化,,False,False
+rxn_026,cmp_052,cmp_053,HCHO・100X%アセタール化,アセタール化,,False,False
 rxn_027,cmp_019,cmp_014,H2O・HgSO4触媒,付加,,False,False
 rxn_028,cmp_014,cmp_010,,原子の組み替え,,False,False
 rxn_029,cmp_019,cmp_022,赤熱したFe触媒,三分子重合,,False,False
