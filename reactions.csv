@@ -61,7 +61,7 @@ rxn_059,cmp_023,cmp_024,,付加重合,,False,False
 rxn_060,cmp_023,cmp_026,H2O,付加,,False,False
 rxn_061,cmp_026,cmp_023,160〜170℃・濃硫酸,分子内脱水,,False,False
 rxn_062,cmp_023,cmp_027,H2O,付加,,False,False
-rxn_063,cmp_027,cmp_023,160〜170℃・濃硫酸,脱水,,False,False
+rxn_063,cmp_027,cmp_023,160〜170℃・濃硫酸,分子内脱水,,False,False
 rxn_064,cmp_026,cmp_032,,酸化,,False,False
 rxn_065,cmp_027,cmp_033,,酸化,,False,False
 rxn_066,cmp_033,cmp_034,,酸化,,False,False
