@@ -28,7 +28,7 @@ cmp_024,ポリプロペン（ポリプロピレン）,polypropylene,(C3H6)n,poly
 cmp_025,クメン,cumene,C6H5C3H7,cumene.png,,3
 cmp_026,2-プロパノール,2-propanol,C3H7OH,2-propanol.png,,2
 cmp_027,1-プロパノール,1-propanol,C3H7OH,1-propanol.png,,2
-cmp_028,無水酢酸,acetic anhydride,(CH3CO)2O,acetic anhydride.png,,
+cmp_028,無水酢酸,acetic anhydride,(CH3CO)2O,acetic anhydride.png,,2
 cmp_029,クメンヒドロペルオキシド,cumene hydroperoxide,C6H5C3H7O2,cumene hydroperoxide.png,,3
 cmp_030,フェノール,phenol,C6H5OH,phenol.png,,3
 cmp_031,酢酸カルシウム,calcium acetate,(CH3COO)2Ca,calcium acetate.png,,2
@@ -40,7 +40,7 @@ cmp_036,ギ酸エチル,ethyl formate,HCOOC2H5,ethyl formate.png,,2
 cmp_037,マレイン酸,maleic acid,C4H4O4,maleic acid.png,虎に踏まれて稀に死す,2
 cmp_038,フマル酸,fumaric acid,C4H4O4,fumaric acid.png,虎に踏まれて稀に死す,2
 cmp_039,コハク酸,succinic acid,C4H604,succinic acid.png,,2
-cmp_040,無水マレイン酸,maleic anhydride,C4H2O3,maleic anhydride.png,,
+cmp_040,無水マレイン酸,maleic anhydride,C4H2O3,maleic anhydride.png,,2
 cmp_041,カーバイド（炭化カルシウム）,calcium carbide,CaC2,calcium carbide.png,,1
 cmp_042,ホルムアルデヒド,formaldehyde,HCHO,formaldehyde.png,,2
 cmp_043,メタノール,methanol,CH3OH,methanol.png,,2
@@ -58,7 +58,7 @@ cmp_054,ヨードホルム,iodoform,CHI3,iodoform.png,,2
 cmp_055,シクロプロパン,cyclopropane,C3H6,cyclopropane.png,,1
 cmp_056,"1,3-ジブロモプロパン","1,3-dibromopropane",C3H6Br2,"1,3-dibromopropane.png",,1
 cmp_057,グリセリン,glycerol,C3H5(OH)3,glycerol.png,,2
-cmp_058,油脂,fats and oils,グリセリンと3つの脂肪酸のエステル,fats and oils.png,,
+cmp_058,油脂,fats and oils,グリセリンと3つの脂肪酸のエステル,fats and oils.png,,2
 cmp_059,ベンジルアルコール,benzyl alcohol,C6H5CH2OH,benzyl alcohol.png,,3
 cmp_060,エチルベンゼン,ethylbenzene,C6H5C2H5,ethylbenzene.png,,3
 cmp_061,スチレン,styrene,C6H5C2H3,styrene.png,,3
