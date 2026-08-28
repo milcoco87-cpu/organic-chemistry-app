@@ -37,7 +37,7 @@ rxn_035,cmp_042,cmp_043,,還元,,False,False
 rxn_036,cmp_035,cmp_036,エタノール,エステル化,共反応物：エタノール,False,False
 rxn_037,cmp_036,cmp_035,H2O,加水分解,同時にエタノールも生成,False,False
 rxn_038,cmp_018,cmp_013,エタノール,エステル化,共反応物：エタノール,False,True
-rxn_039,cmp_013,cmp_018,H2O,加水分解,,False,True
+rxn_039,cmp_013,cmp_018,H2O,加水分解,同時にエタノールも生成,False,True
 rxn_040,cmp_013,cmp_017,NaOH,けん化,,False,True
 rxn_041,cmp_018,cmp_017,NaOH,中和,,False,False
 rxn_042,cmp_017,cmp_044,乾留,脱炭酸,,False,False
