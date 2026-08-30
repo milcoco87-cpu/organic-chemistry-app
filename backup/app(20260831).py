@@ -2,10 +2,6 @@ import pandas as pd
 import streamlit as st
 import random
 import re
-import json
-import base64
-import zlib
-import secrets
 from datetime import datetime, timezone, timedelta
 
 
@@ -374,64 +370,6 @@ range_options = [
     "カスタムB",
 ]
 
-
-# =========================
-# 途中経過の保存・復元
-# =========================
-# Streamlit の session_state は接続切れで失われるため、
-# 進捗を圧縮して URL の query parameter に保存する。
-# 氏名は保存しない。
-PROGRESS_PARAM = "progress"
-PROGRESS_VERSION = 1
-
-
-def encode_progress(data):
-    raw = json.dumps(
-        data,
-        ensure_ascii=False,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    compressed = zlib.compress(raw, level=9)
-    return base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
-
-
-def decode_progress(value):
-    if not value:
-        return None
-    try:
-        padding = "=" * (-len(value) % 4)
-        compressed = base64.urlsafe_b64decode(value + padding)
-        data = json.loads(zlib.decompress(compressed).decode("utf-8"))
-        if data.get("v") != PROGRESS_VERSION:
-            return None
-        return data
-    except Exception:
-        return None
-
-
-def load_saved_progress():
-    value = st.query_params.get(PROGRESS_PARAM)
-    if isinstance(value, list):
-        value = value[0] if value else None
-    return decode_progress(value)
-
-
-def clear_saved_progress():
-    if PROGRESS_PARAM in st.query_params:
-        del st.query_params[PROGRESS_PARAM]
-
-
-saved_progress = load_saved_progress()
-
-# 保存済みの設定が現在の選択肢として有効なら、最初からそこを表示する。
-saved_chart = (saved_progress or {}).get("chart")
-saved_range = (saved_progress or {}).get("range")
-saved_style = (saved_progress or {}).get("style")
-
-chart_index = chart_types.index(saved_chart) if saved_chart in chart_types else 0
-range_index = range_options.index(saved_range) if saved_range in range_options else 3
-style_index = question_styles.index(saved_style) if saved_style in question_styles else 0
-
 st.title("有機化合物 系統図トレーニング")
 
 name_col, chart_col, range_col, mode_col = st.columns([2, 1, 1.4, 1])
@@ -447,21 +385,19 @@ with chart_col:
     selected_chart = st.selectbox(
         "系統図",
         chart_types,
-        index=chart_index,
     )
 
 with range_col:
     selected_range = st.selectbox(
         "出題範囲",
         range_options,
-        index=range_index,
+        index=3,
     )
 
 with mode_col:
     selected_question_style = st.selectbox(
         "出題モード",
         question_styles,
-        index=style_index,
     )
 
 
@@ -477,14 +413,6 @@ if "selected_question_style" not in st.session_state:
 
 if "selected_range" not in st.session_state:
     st.session_state.selected_range = selected_range
-
-# 1回の問題順を再現するための乱数シード。
-# 保存済み進捗があれば同じシードを使う。
-if "run_seed" not in st.session_state:
-    if saved_progress and isinstance(saved_progress.get("seed"), int):
-        st.session_state.run_seed = saved_progress["seed"]
-    else:
-        st.session_state.run_seed = secrets.randbits(63)
 
 if (
     st.session_state.selected_chart != selected_chart
@@ -506,8 +434,6 @@ if (
     st.session_state.run_chart = ""
     st.session_state.run_question_style = ""
     st.session_state.run_range = ""
-    st.session_state.run_seed = secrets.randbits(63)
-    st.session_state.review_current_candidate = None
 
     if "quiz_items" in st.session_state:
         del st.session_state.quiz_items
@@ -518,7 +444,6 @@ if (
     if "custom_questions" in st.session_state:
         del st.session_state.custom_questions
 
-    clear_saved_progress()
     st.rerun()
 
 
@@ -810,9 +735,6 @@ def get_target_hidden_parts():
 
 
 def make_quiz_items():
-    # 同じ run_seed なら、リロード後も同じ問題順を完全再現する。
-    rng = random.Random(st.session_state.run_seed)
-
     # カスタム：
     # 選んだ反応は基本1回ずつ使う。
     # つながっている反応どうしは、重複しない範囲で2反応問題にまとめる。
@@ -825,7 +747,7 @@ def make_quiz_items():
 
         # 反応順をランダム化して、同じ反応を2回使わないようにペアを作る
         shuffled_connections = connections.copy()
-        rng.shuffle(shuffled_connections)
+        random.shuffle(shuffled_connections)
 
         used_reaction_ids = set()
         custom_problem_defs = []
@@ -850,7 +772,7 @@ def make_quiz_items():
 
             # つながる反応があれば2反応問題にまとめる
             if pair_candidates:
-                second_connection = rng.choice(pair_candidates)
+                second_connection = random.choice(pair_candidates)
 
                 question_id = (
                     f"custom_pair_{first_reaction_id}_"
@@ -903,21 +825,21 @@ def make_quiz_items():
         for problem_def in custom_problem_defs:
             if problem_def["layout"] == "two":
                 if selected_question_style == "構造式モード":
-                    hidden_part = rng.choice(
+                    hidden_part = random.choice(
                         ["before", "after"]
                     )
                 else:
-                    hidden_part = rng.choice(
+                    hidden_part = random.choice(
                         ["before", "condition1", "after"]
                     )
 
             else:
                 if selected_question_style == "構造式モード":
-                    hidden_part = rng.choice(
+                    hidden_part = random.choice(
                         ["before", "answer", "after"]
                     )
                 else:
-                    hidden_part = rng.choice(
+                    hidden_part = random.choice(
                         all_hidden_parts
                     )
 
@@ -929,7 +851,7 @@ def make_quiz_items():
                 }
             )
 
-        rng.shuffle(items)
+        random.shuffle(items)
         return items
 
     # 構造式モード：
@@ -953,7 +875,7 @@ def make_quiz_items():
 
         # 3化合物ルートに入らない化合物は、単独反応から候補を作る
         two_questions = {}
-        for compound_id in sorted(selected_compound_ids):
+        for compound_id in selected_compound_ids:
             if compound_id in candidates_by_compound:
                 continue
 
@@ -982,11 +904,11 @@ def make_quiz_items():
         st.session_state.two_questions = two_questions
 
         items = [
-            rng.choice(candidates)
-            for _, candidates in sorted(candidates_by_compound.items())
+            random.choice(candidates)
+            for candidates in candidates_by_compound.values()
         ]
 
-        rng.shuffle(items)
+        random.shuffle(items)
         return items
 
     # 通常モード：
@@ -1003,7 +925,7 @@ def make_quiz_items():
                 }
             )
 
-    rng.shuffle(items)
+    random.shuffle(items)
     return items
 
 
@@ -1042,125 +964,6 @@ if "run_question_style" not in st.session_state:
 
 if "run_range" not in st.session_state:
     st.session_state.run_range = ""
-
-if "review_current_candidate" not in st.session_state:
-    st.session_state.review_current_candidate = None
-
-
-def restore_saved_progress_once():
-    """query parameter から session_state へ進捗を1回だけ復元する。"""
-    if st.session_state.get("progress_restored_once"):
-        return
-
-    st.session_state.progress_restored_once = True
-
-    if not saved_progress:
-        return
-
-
-    # 設定が一致している場合だけ復元する。
-    if not (
-        saved_progress.get("chart") == selected_chart
-        and saved_progress.get("range") == selected_range
-        and saved_progress.get("style") == selected_question_style
-    ):
-        return
-
-    st.session_state.mode = saved_progress.get("mode", "normal")
-    st.session_state.quiz_number = max(0, int(saved_progress.get("q", 0)))
-    st.session_state.show_answer = bool(saved_progress.get("answer", False))
-    st.session_state.review_number = max(0, int(saved_progress.get("rq", 0)))
-    st.session_state.finished_once = bool(saved_progress.get("finished", False))
-    st.session_state.completed_at = saved_progress.get("completed")
-
-    restored_review = []
-    for item in saved_progress.get("review", []):
-        if not isinstance(item, list) or len(item) < 2:
-            continue
-        item_type = "compound" if item[0] == "c" else "reaction"
-        restored_review.append(
-            {
-                "item_type": item_type,
-                "item_id": item[1],
-                "question_id": item[2] if len(item) >= 3 else None,
-                "hidden_part": item[3] if len(item) >= 4 else None,
-            }
-        )
-    st.session_state.review_list = restored_review
-
-    candidate = saved_progress.get("review_candidate")
-    if isinstance(candidate, list) and len(candidate) == 2:
-        st.session_state.review_current_candidate = {
-            "question_id": candidate[0],
-            "hidden_part": candidate[1],
-        }
-    else:
-        st.session_state.review_current_candidate = None
-
-
-def persist_progress():
-    """氏名を除いた現在の進捗をURLへ保存する。"""
-    review_compact = []
-    for item in st.session_state.get("review_list", []):
-        kind = "c" if item.get("item_type") == "compound" else "r"
-        review_compact.append(
-            [
-                kind,
-                item.get("item_id"),
-                item.get("question_id"),
-                item.get("hidden_part"),
-            ]
-        )
-
-    current_candidate = st.session_state.get("review_current_candidate")
-    candidate_compact = None
-    if current_candidate:
-        candidate_compact = [
-            current_candidate.get("question_id"),
-            current_candidate.get("hidden_part"),
-        ]
-
-    data = {
-        "v": PROGRESS_VERSION,
-        "seed": int(st.session_state.run_seed),
-        "q": int(st.session_state.get("quiz_number", 0)),
-        "mode": st.session_state.get("mode", "normal"),
-        "rq": int(st.session_state.get("review_number", 0)),
-        "review": review_compact,
-        "review_candidate": candidate_compact,
-        "chart": selected_chart,
-        "range": selected_range,
-        "style": selected_question_style,
-        "answer": bool(st.session_state.get("show_answer", False)),
-        "finished": bool(st.session_state.get("finished_once", False)),
-        "completed": st.session_state.get("completed_at"),
-    }
-    st.query_params[PROGRESS_PARAM] = encode_progress(data)
-
-
-def reset_run_from_beginning():
-    """保存済みの進捗を捨てて、新しい1周を1問目から始める。"""
-    clear_saved_progress()
-    st.session_state.mode = "normal"
-    st.session_state.run_seed = secrets.randbits(63)
-    st.session_state.quiz_items = make_quiz_items()
-    st.session_state.quiz_number = 0
-    st.session_state.show_answer = False
-    st.session_state.review_list = []
-    st.session_state.review_number = 0
-    st.session_state.review_current_candidate = None
-    st.session_state.finished_once = False
-    st.session_state.completed_at = None
-    st.session_state.run_name = ""
-    st.session_state.run_chart = ""
-    st.session_state.run_question_style = ""
-    st.session_state.run_range = ""
-    persist_progress()
-
-
-restore_saved_progress_once()
-# 1問目をまだ解いていない状態でも、選択した系統図・範囲・モードを保存する。
-persist_progress()
 
 
 def lock_run_info():
@@ -1315,14 +1118,11 @@ def show_question(question, hidden_part):
             unsafe_allow_html=True,
         )
 
-        memo = clean_reaction_memo(reaction["memo"])
+        if hidden_part == key and st.session_state.show_answer:
+            memo = clean_reaction_memo(reaction["memo"])
 
-        # 化合物を問う問題では、反応メモは問題成立に必要な情報として
-        # 出題時から表示する（例：同時に○○も生成）。
-        # 反応条件そのものを問うときだけ、答えを漏らさないよう
-        # 答え表示後にメモを見せる。
-        if memo and (hidden_part != key or st.session_state.show_answer):
-            st.info(f"メモ：{memo}")
+            if memo:
+                st.info(f"メモ：{memo}")
             
     if question.get("layout") == "two":
         show_compound("before")
@@ -1465,15 +1265,24 @@ with left_col:
                     st.session_state.mode = "review"
                     st.session_state.review_number = 0
                     st.session_state.show_answer = False
-                    st.session_state.review_current_candidate = None
-                    persist_progress()
                     st.rerun()
 
             else:
                 show_completion_certificate()
 
-            if st.button("最初からやり直す"):
-                reset_run_from_beginning()
+            if st.button("もう一度最初からやりましょう"):
+                st.session_state.mode = "normal"
+                st.session_state.quiz_items = make_quiz_items()
+                st.session_state.quiz_number = 0
+                st.session_state.show_answer = False
+                st.session_state.review_list = []
+                st.session_state.review_number = 0
+                st.session_state.finished_once = False
+                st.session_state.completed_at = None
+                st.session_state.run_name = ""
+                st.session_state.run_chart = ""
+                st.session_state.run_question_style = ""
+                st.session_state.run_range = ""
                 st.rerun()
 
         else:
@@ -1511,7 +1320,6 @@ with left_col:
                 else:
                     lock_run_info()
                     st.session_state.show_answer = True
-                    persist_progress()
                     st.rerun()
 
 
@@ -1523,14 +1331,12 @@ with left_col:
                     if st.button("できた", key="btn_good"):
                         st.session_state.quiz_number += 1
                         st.session_state.show_answer = False
-                        persist_progress()
                         st.rerun()
 
                 with col2:
                     if st.button("微妙", key="btn_mid"):
                         st.session_state.quiz_number += 1
                         st.session_state.show_answer = False
-                        persist_progress()
                         st.rerun()
 
                 with col3:
@@ -1550,14 +1356,23 @@ with left_col:
                             st.session_state.review_list.append(review_item)
                         st.session_state.quiz_number += 1
                         st.session_state.show_answer = False
-                        persist_progress()
                         st.rerun()
     else:
         if len(st.session_state.review_list) == 0:
             show_completion_certificate()
 
-            if st.button("最初からやり直す"):
-                reset_run_from_beginning()
+            if st.button("もう一度最初からやりましょう"):
+                st.session_state.mode = "normal"
+                st.session_state.quiz_items = make_quiz_items()
+                st.session_state.quiz_number = 0
+                st.session_state.show_answer = False
+                st.session_state.review_number = 0
+                st.session_state.finished_once = False
+                st.session_state.completed_at = None
+                st.session_state.run_name = ""
+                st.session_state.run_chart = ""
+                st.session_state.run_question_style = ""
+                st.session_state.run_range = ""
                 st.rerun()
 
         else:
@@ -1565,13 +1380,7 @@ with left_col:
                 st.session_state.review_list
             ):
                 st.session_state.review_number = 0
-                review_cycle_rng = random.Random(
-                    f"{st.session_state.run_seed}:review-cycle:"
-                    f"{len(st.session_state.review_list)}"
-                )
-                review_cycle_rng.shuffle(st.session_state.review_list)
-                st.session_state.review_current_candidate = None
-                persist_progress()
+                random.shuffle(st.session_state.review_list)
 
             review_item = st.session_state.review_list[
                 st.session_state.review_number
@@ -1579,29 +1388,16 @@ with left_col:
 
             candidates = find_review_candidates(review_item)
 
-            # 「答えを見る」のrerunや接続切れで、同じ復習問題が
-            # 別の問題へすり替わらないよう現在候補を固定する。
-            selected_candidate = st.session_state.get("review_current_candidate")
+            different_candidates = [
+                candidate
+                for candidate in candidates
+                if candidate["question_id"] != review_item["question_id"]
+            ]
 
-            if selected_candidate not in candidates:
-                different_candidates = [
-                    candidate
-                    for candidate in candidates
-                    if candidate["question_id"] != review_item.get("question_id")
-                ]
-
-                review_rng = random.Random(
-                    f"{st.session_state.run_seed}:{review_item['item_type']}:"
-                    f"{review_item['item_id']}:{st.session_state.review_number}"
-                )
-
-                if len(different_candidates) > 0:
-                    selected_candidate = review_rng.choice(different_candidates)
-                else:
-                    selected_candidate = review_rng.choice(candidates)
-
-                st.session_state.review_current_candidate = selected_candidate
-                persist_progress()
+            if len(different_candidates) > 0:
+                selected_candidate = random.choice(different_candidates)
+            else:
+                selected_candidate = random.choice(candidates)
 
             question = get_question_by_id(
                 selected_candidate["question_id"]
@@ -1632,7 +1428,6 @@ with left_col:
                 else:
                     lock_run_info()
                     st.session_state.show_answer = True
-                    persist_progress()
                     st.rerun()
 
             if st.session_state.show_answer:
@@ -1646,30 +1441,24 @@ with left_col:
                             st.session_state.review_number
                         )
                         st.session_state.show_answer = False
-                        st.session_state.review_current_candidate = None
 
                         if st.session_state.review_number >= len(
                             st.session_state.review_list
                         ):
                             st.session_state.review_number = 0
 
-                        persist_progress()
                         st.rerun()
 
                 with col2:
                     if st.button("微妙", key="btn_mid"):
                         st.session_state.review_number += 1
                         st.session_state.show_answer = False
-                        st.session_state.review_current_candidate = None
-                        persist_progress()
                         st.rerun()
 
                 with col3:
                     if st.button("できなかった", key="btn_bad"):
                         st.session_state.review_number += 1
                         st.session_state.show_answer = False
-                        st.session_state.review_current_candidate = None
-                        persist_progress()
                         st.rerun()
 
 with right_col:
