@@ -750,15 +750,26 @@ if (
     if slot_progress and isinstance(slot_progress.get("seed"), int):
         st.session_state.run_seed = slot_progress["seed"]
         st.query_params[PROGRESS_PARAM] = slot_encoded
+
+        # この実行の後半で、そのモードの保存済み進捗をそのまま復元する。
+        # ここで余計な st.rerun() を挟まないことで、
+        # プルダウン変更直後に手動リロードなしで画面を切り替えられる。
+        saved_progress = slot_progress
+        selected_slot_encoded = slot_encoded
     else:
         st.session_state.run_seed = secrets.randbits(63)
+        saved_progress = None
+        selected_slot_encoded = None
+
         if PROGRESS_PARAM in st.query_params:
             del st.query_params[PROGRESS_PARAM]
 
     for state_key in ["quiz_items", "two_questions", "custom_questions"]:
         st.session_state.pop(state_key, None)
 
-    st.rerun()
+    # st.selectbox の変更自体で Streamlit はすでに再実行されているため、
+    # ここでは st.rerun() しない。
+    # 後続の問題生成 → restore_saved_progress_once() まで同じ実行内で進める。
 
 
 
