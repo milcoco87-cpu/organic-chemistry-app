@@ -716,7 +716,7 @@ if _has_components_v2:
                 ctx.lineJoin = "round";
                 ctx.miterLimit = 2;
                 ctx.strokeStyle = "#111111";
-                ctx.lineWidth = 2.3;
+                ctx.lineWidth = 2.4;
 
                 const savedImage = readStored() || currentImage;
                 restoreImage(savedImage);
@@ -757,7 +757,6 @@ if _has_components_v2:
                 ctx.moveTo(lastX, lastY);
 
                 // タップだけでも点が残るよう、ごく短い線を描く。
-                ctx.lineWidth = 2.3;
                 ctx.lineTo(lastX + 0.01, lastY + 0.01);
                 ctx.stroke();
             }
@@ -765,9 +764,18 @@ if _has_components_v2:
             function drawSample(sample) {
                 const p = pointFromEvent(sample);
 
-                // 化学の走り書き用途なので、筆圧や補間は使わず軽さ優先。
-                ctx.lineWidth = 2.3;
-                ctx.lineTo(p.x, p.y);
+                // Apple Pencilの筆圧が取得できる場合は少しだけ線幅へ反映。
+                if (sample.pointerType === "pen" && sample.pressure > 0) {
+                    ctx.lineWidth = 1.7 + sample.pressure * 2.2;
+                } else {
+                    ctx.lineWidth = 2.4;
+                }
+
+                // 直線で点を結ぶより、前の点との中点を使って滑らかにつなぐ。
+                const midX = (lastX + p.x) / 2;
+                const midY = (lastY + p.y) / 2;
+
+                ctx.quadraticCurveTo(lastX, lastY, midX, midY);
                 ctx.stroke();
 
                 lastX = p.x;
@@ -781,18 +789,20 @@ if _has_components_v2:
 
                 event.preventDefault();
 
-                // Apple Pencilは細かいイベントを全部処理すると重くなるため、
-                // その時点の最新位置だけ描く。指・マウスも同じ軽量処理。
-                let sample = event;
+                // Safari / Pointer Events が1イベント内に保持している
+                // 細かいPencil軌跡を全部拾う。未対応環境では通常eventにフォールバック。
+                let samples = [event];
 
                 if (typeof event.getCoalescedEvents === "function") {
                     const coalesced = event.getCoalescedEvents();
                     if (coalesced && coalesced.length > 0) {
-                        sample = coalesced[coalesced.length - 1];
+                        samples = coalesced;
                     }
                 }
 
-                drawSample(sample);
+                for (const sample of samples) {
+                    drawSample(sample);
+                }
             }
 
             function finishStroke(event, drawLastPoint = true) {
