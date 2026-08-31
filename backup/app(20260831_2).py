@@ -1,6 +1,5 @@
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 import random
 import re
 import json
@@ -380,103 +379,10 @@ range_options = [
 # 途中経過の保存・復元
 # =========================
 # Streamlit の session_state は接続切れで失われるため、
-# 進捗を圧縮して URL の query parameter とブラウザ localStorage の両方に保存する。
-# URL はリロード・再接続用、localStorage はブラウザを閉じて開き直した場合の復元用。
+# 進捗を圧縮して URL の query parameter に保存する。
 # 氏名は保存しない。
 PROGRESS_PARAM = "progress"
-PROGRESS_VERSION = 2
-LOCAL_STORAGE_KEY = "organic_chemistry_quiz_progress_v2"
-LOCAL_STORAGE_BOOT_PARAM = "progress_boot"
-
-
-def bootstrap_progress_from_local_storage():
-    """
-    ブラウザを閉じて開き直したとき、localStorage に残っている進捗を
-    query parameter へ戻してから Streamlit 側の復元処理へ渡す。
-
-    localStorage が無効・利用不可でも例外でアプリを止めず、
-    query parameter / session_state の従来動作へフォールバックする。
-    """
-    booted = st.query_params.get(LOCAL_STORAGE_BOOT_PARAM)
-    if isinstance(booted, list):
-        booted = booted[0] if booted else None
-
-    if str(booted) == "1":
-        return
-
-    key_js = json.dumps(LOCAL_STORAGE_KEY)
-    progress_param_js = json.dumps(PROGRESS_PARAM)
-    boot_param_js = json.dumps(LOCAL_STORAGE_BOOT_PARAM)
-
-    components.html(
-        f"""
-        <script>
-        (() => {{
-            const storageKey = {key_js};
-            const progressParam = {progress_param_js};
-            const bootParam = {boot_param_js};
-            const parentWindow = window.parent;
-            const url = new URL(parentWindow.location.href);
-
-            try {{
-                if (!url.searchParams.get(progressParam)) {{
-                    const saved = parentWindow.localStorage.getItem(storageKey);
-                    if (saved) {{
-                        url.searchParams.set(progressParam, saved);
-                    }}
-                }}
-            }} catch (e) {{
-                // localStorage が禁止されている環境では何もしない。
-                // アプリは query parameter / session_state でそのまま動作する。
-            }}
-
-            url.searchParams.set(bootParam, "1");
-            parentWindow.location.replace(url.toString());
-        }})();
-        </script>
-        """,
-        height=0,
-    )
-
-    st.caption("保存済みの進捗を確認しています…")
-    st.stop()
-
-
-def write_progress_to_local_storage(encoded_progress):
-    """現在の進捗をブラウザの localStorage に保存する。"""
-    value_js = json.dumps(encoded_progress)
-    key_js = json.dumps(LOCAL_STORAGE_KEY)
-
-    components.html(
-        f"""
-        <script>
-        try {{
-            window.parent.localStorage.setItem({key_js}, {value_js});
-        }} catch (e) {{
-            // 保存不可でもクイズ本体は止めない。
-        }}
-        </script>
-        """,
-        height=0,
-    )
-
-
-def clear_progress_from_local_storage():
-    """ブラウザ側の保存済み進捗を削除する。"""
-    key_js = json.dumps(LOCAL_STORAGE_KEY)
-
-    components.html(
-        f"""
-        <script>
-        try {{
-            window.parent.localStorage.removeItem({key_js});
-        }} catch (e) {{
-            // 削除不可でもアプリ本体は止めない。
-        }}
-        </script>
-        """,
-        height=0,
-    )
+PROGRESS_VERSION = 1
 
 
 def encode_progress(data):
@@ -496,7 +402,7 @@ def decode_progress(value):
         padding = "=" * (-len(value) % 4)
         compressed = base64.urlsafe_b64decode(value + padding)
         data = json.loads(zlib.decompress(compressed).decode("utf-8"))
-        if data.get("v") not in {1, PROGRESS_VERSION}:
+        if data.get("v") != PROGRESS_VERSION:
             return None
         return data
     except Exception:
@@ -513,12 +419,7 @@ def load_saved_progress():
 def clear_saved_progress():
     if PROGRESS_PARAM in st.query_params:
         del st.query_params[PROGRESS_PARAM]
-    clear_progress_from_local_storage()
 
-
-# 初回アクセス時は、まずブラウザ側の永続保存を確認する。
-# 保存が使えない環境でも、JS側で progress_boot=1 を付けて通常動作へ進む。
-bootstrap_progress_from_local_storage()
 
 saved_progress = load_saved_progress()
 
@@ -1147,7 +1048,7 @@ if "review_current_candidate" not in st.session_state:
 
 
 def restore_saved_progress_once():
-    """保存済み進捗（localStorage→query parameter）を session_state へ1回だけ復元する。"""
+    """query parameter から session_state へ進捗を1回だけ復元する。"""
     if st.session_state.get("progress_restored_once"):
         return
 
@@ -1198,7 +1099,7 @@ def restore_saved_progress_once():
 
 
 def persist_progress():
-    """氏名を除いた現在の進捗をURLとlocalStorageへ保存する。"""
+    """氏名を除いた現在の進捗をURLへ保存する。"""
     review_compact = []
     for item in st.session_state.get("review_list", []):
         kind = "c" if item.get("item_type") == "compound" else "r"
@@ -1234,9 +1135,7 @@ def persist_progress():
         "finished": bool(st.session_state.get("finished_once", False)),
         "completed": st.session_state.get("completed_at"),
     }
-    encoded = encode_progress(data)
-    st.query_params[PROGRESS_PARAM] = encoded
-    write_progress_to_local_storage(encoded)
+    st.query_params[PROGRESS_PARAM] = encode_progress(data)
 
 
 def reset_run_from_beginning():
