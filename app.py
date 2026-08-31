@@ -596,6 +596,23 @@ if _has_components_v2:
             -webkit-touch-callout: none;
             cursor: crosshair;
         }
+
+        /* iPad横向きではSafariの下端クリップを避けるため、
+           キャンバスを少しだけ小さく固定し、下に余白を確保する。 */
+        @media (orientation: landscape) and (hover: none) and (pointer: coarse) {
+            .handwriting-wrap {
+                height: 100%;
+                padding-bottom: 16px;
+                box-sizing: border-box;
+            }
+
+            #handwriting-canvas {
+                flex: 0 0 292px;
+                height: 292px;
+                max-height: 292px;
+                margin-bottom: 16px;
+            }
+        }
         """,
         js=r"""
         export default function(component) {
@@ -2481,7 +2498,7 @@ with right_col:
 
     # 下半分：現在の問題だけに使う手書きスペース
     with st.container(
-        height=560,
+        height=485,
         border=True,
         key="handwriting_area",
     ):
