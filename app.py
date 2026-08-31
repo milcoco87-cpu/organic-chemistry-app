@@ -376,21 +376,18 @@ range_options = [
 
 
 # =========================
-# 途中経過の保存・復元
+# 途中経過の保存・復元（モード別）
 # =========================
-# 進捗は2か所に保存する。
-# 1) URL query parameter:
-#    Wi-Fi切断・Streamlit再接続・リロード時の復元用
-# 2) ブラウザ localStorage:
-#    タブ/ブラウザを閉じて、同じ端末・同じブラウザで開き直した場合の復元用
-#
+# 進捗は「系統図 × 出題範囲 × 出題モード」ごとに別保存する。
+# カスタムA/Bは系統図をまたぐため、系統図部分は共通キーにする。
 # 氏名は保存しない。
 #
-# localStorage との通信には、iframe型の components.html() ではなく
-# Streamlit Components V2 の双方向コンポーネントを使う。
+# 保存先：
+# 1) URL query parameter = 今開いているモードの即時復元用
+# 2) browser localStorage = 各モードの複数進捗をまとめて保持
 PROGRESS_PARAM = "progress"
-PROGRESS_VERSION = 2
-LOCAL_STORAGE_KEY = "organic_chemistry_quiz_progress_v2"
+PROGRESS_VERSION = 3
+LOCAL_STORAGE_KEY = "organic_chemistry_quiz_progress_slots_v3"
 
 
 def encode_progress(data):
@@ -410,11 +407,8 @@ def decode_progress(value):
         padding = "=" * (-len(value) % 4)
         compressed = base64.urlsafe_b64decode(value + padding)
         data = json.loads(zlib.decompress(compressed).decode("utf-8"))
-
-        # 直前版(v1)のURL進捗も読めるようにする。
-        if data.get("v") not in {1, PROGRESS_VERSION}:
+        if data.get("v") not in {1, 2, PROGRESS_VERSION}:
             return None
-
         return data
     except Exception:
         return None
@@ -427,11 +421,41 @@ def get_query_progress_value():
     return value
 
 
+def make_progress_slot_key(chart, selected_range_value, style):
+    """設定ごとの保存スロット名。カスタムは系統図に依存しない。"""
+    chart_part = "CUSTOM" if selected_range_value in {"カスタムA", "カスタムB"} else str(chart)
+    return f"{chart_part}||{selected_range_value}||{style}"
+
+
+def normalize_bool_for_signature(value):
+    if pd.isna(value):
+        return False
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"true", "1", "yes", "on"}
+
+
+def custom_definition_signature(selected_range_value):
+    """カスタムA/Bの反応構成が変わったかを検知する署名。"""
+    if selected_range_value not in {"カスタムA", "カスタムB"}:
+        return ""
+
+    col = "custom_a" if selected_range_value == "カスタムA" else "custom_b"
+    selected_ids = sorted(
+        reactions_df.loc[
+            reactions_df[col].apply(normalize_bool_for_signature),
+            "reaction_id",
+        ].dropna().astype(str).tolist()
+    )
+
+    import hashlib
+    raw = "|".join(selected_ids).encode("utf-8")
+    return hashlib.sha1(raw).hexdigest()
+
+
 # ---------------------------------------------------------
 # ブラウザ localStorage 用 Streamlit Components V2
 # ---------------------------------------------------------
-# Streamlitが古く Components V2 を持たない場合でも、
-# アプリ本体はURL保存だけで動き続けるようフォールバックする。
 try:
     _components_v2 = st.components.v2
     _has_components_v2 = hasattr(_components_v2, "component")
@@ -442,7 +466,7 @@ except Exception:
 
 if _has_components_v2:
     _progress_storage_component = st.components.v2.component(
-        "organic_quiz_progress_storage",
+        "organic_quiz_progress_storage_slots",
         js=r"""
         export default function(component) {
             const { data, setStateValue } = component;
@@ -452,15 +476,11 @@ if _has_components_v2:
             if (action === "load") {
                 let stored = null;
                 let available = true;
-
                 try {
                     stored = window.localStorage.getItem(storageKey);
                 } catch (e) {
                     available = false;
-                    stored = null;
                 }
-
-                // stored/availableを先に送り、readyを最後に送る。
                 setStateValue("stored", stored);
                 setStateValue("available", available);
                 setStateValue("ready", true);
@@ -470,18 +490,14 @@ if _has_components_v2:
             if (action === "set") {
                 try {
                     window.localStorage.setItem(storageKey, data.value ?? "");
-                } catch (e) {
-                    // 保存不可でもクイズ本体は止めない。
-                }
+                } catch (e) {}
                 return;
             }
 
             if (action === "remove") {
                 try {
                     window.localStorage.removeItem(storageKey);
-                } catch (e) {
-                    // 削除不可でもクイズ本体は止めない。
-                }
+                } catch (e) {}
             }
         }
         """,
@@ -490,15 +506,10 @@ else:
     _progress_storage_component = None
 
 
-def load_browser_progress_value():
-    """
-    localStorageを1回読み、(値, 読み込み完了, 利用可否)を返す。
-
-    Components V2 がない環境では「読み込み完了・利用不可」として返し、
-    URL保存だけでアプリを継続する。
-    """
+def load_browser_registry():
+    """localStorageから全モード分の保存レジストリを読む。"""
     if _progress_storage_component is None:
-        return None, True, False
+        return {"v": 1, "last_slot": None, "slots": {}}, True, False
 
     result = _progress_storage_component(
         data={
@@ -513,87 +524,117 @@ def load_browser_progress_value():
         on_stored_change=lambda: None,
         on_available_change=lambda: None,
         on_ready_change=lambda: None,
-        key="progress_storage_reader",
+        key="progress_storage_registry_reader",
     )
 
-    return (
-        result.stored,
-        bool(result.ready),
-        bool(result.available),
-    )
+    if not bool(result.ready):
+        return None, False, bool(result.available)
+
+    registry = {"v": 1, "last_slot": None, "slots": {}}
+    if result.stored:
+        try:
+            loaded = json.loads(result.stored)
+            if isinstance(loaded, dict):
+                registry["last_slot"] = loaded.get("last_slot")
+                slots = loaded.get("slots", {})
+                if isinstance(slots, dict):
+                    registry["slots"] = slots
+        except Exception:
+            pass
+
+    return registry, True, bool(result.available)
 
 
-def write_progress_to_browser(encoded_progress):
-    """現在の進捗をlocalStorageへ保存する。"""
+def write_registry_to_browser(registry):
     if _progress_storage_component is None:
         return
 
+    registry_text = json.dumps(
+        registry,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
     import hashlib
-    digest = hashlib.sha1(
-        encoded_progress.encode("utf-8")
-    ).hexdigest()[:16]
+    digest = hashlib.sha1(registry_text.encode("utf-8")).hexdigest()[:16]
 
     _progress_storage_component(
         data={
             "action": "set",
             "storageKey": LOCAL_STORAGE_KEY,
-            "value": encoded_progress,
+            "value": registry_text,
         },
-        key=f"progress_storage_writer_{digest}",
+        key=f"progress_storage_registry_writer_{digest}",
     )
 
 
-def clear_progress_from_browser():
-    """localStorageの保存済み進捗を削除する。"""
-    if _progress_storage_component is None:
-        return
+def get_progress_from_registry(registry, chart, range_value, style):
+    if not registry:
+        return None, None
 
-    _progress_storage_component(
-        data={
-            "action": "remove",
-            "storageKey": LOCAL_STORAGE_KEY,
-        },
-        key="progress_storage_clearer",
-    )
+    slot_key = make_progress_slot_key(chart, range_value, style)
+    encoded = registry.get("slots", {}).get(slot_key)
+    progress = decode_progress(encoded)
+
+    if not progress:
+        return None, encoded
+
+    # カスタム内容が先生アプリで変更されていたら、その保存だけ無効にする。
+    expected_sig = custom_definition_signature(range_value)
+    saved_sig = progress.get("custom_sig", "")
+    if range_value in {"カスタムA", "カスタムB"} and saved_sig != expected_sig:
+        return None, encoded
+
+    return progress, encoded
 
 
-def clear_saved_progress():
-    """URLとブラウザの両方から進捗を削除する。"""
-    if PROGRESS_PARAM in st.query_params:
-        del st.query_params[PROGRESS_PARAM]
-    clear_progress_from_browser()
+def remove_current_slot_from_registry(registry, chart, range_value, style):
+    slot_key = make_progress_slot_key(chart, range_value, style)
+    updated = {
+        "v": 1,
+        "last_slot": registry.get("last_slot") if registry else None,
+        "slots": dict((registry or {}).get("slots", {})),
+    }
+    updated["slots"].pop(slot_key, None)
+    if updated.get("last_slot") == slot_key:
+        updated["last_slot"] = None
+    return updated
 
 
 # ---------------------------------------------------------
-# 起動時の復元
+# 起動時：まずブラウザの全モード進捗を読む
 # ---------------------------------------------------------
-# URLに進捗がある場合はそれを最優先する。
+browser_progress_registry, browser_storage_ready, browser_storage_available = (
+    load_browser_registry()
+)
+
+if not browser_storage_ready:
+    st.caption("保存済みの進捗を確認しています…")
+    st.stop()
+
+# URLに有効な進捗があれば、今開いているモードとして最優先。
 query_progress_value = get_query_progress_value()
-saved_progress = decode_progress(query_progress_value)
+query_saved_progress = decode_progress(query_progress_value)
 
-# URLに有効な進捗がない「新しいブラウザセッション」のときだけ、
-# localStorageを確認する。
-if saved_progress is None:
-    browser_progress_value, browser_storage_ready, browser_storage_available = (
-        load_browser_progress_value()
-    )
+# URLがない新規起動では、前回最後に使ったスロットを初期選択にする。
+initial_saved_progress = query_saved_progress
+if initial_saved_progress is None and browser_progress_registry:
+    last_slot = browser_progress_registry.get("last_slot")
+    if last_slot:
+        encoded = browser_progress_registry.get("slots", {}).get(last_slot)
+        candidate = decode_progress(encoded)
+        if candidate:
+            # カスタム構成が変わっていないことも確認する。
+            candidate_range = candidate.get("range")
+            if (
+                candidate_range not in {"カスタムA", "カスタムB"}
+                or candidate.get("custom_sig", "") == custom_definition_signature(candidate_range)
+            ):
+                initial_saved_progress = candidate
 
-    if not browser_storage_ready:
-        # 読み込み完了時にsetStateValue()がStreamlitをrerunする。
-        st.caption("保存済みの進捗を確認しています…")
-        st.stop()
-
-    saved_progress = decode_progress(browser_progress_value)
-
-    # localStorageから復元できたらURLにも戻す。
-    if saved_progress is not None and browser_progress_value:
-        st.query_params[PROGRESS_PARAM] = browser_progress_value
-
-
-# 保存済みの設定が現在の選択肢として有効なら、最初からそこを表示する。
-saved_chart = (saved_progress or {}).get("chart")
-saved_range = (saved_progress or {}).get("range")
-saved_style = (saved_progress or {}).get("style")
+saved_chart = (initial_saved_progress or {}).get("chart")
+saved_range = (initial_saved_progress or {}).get("range")
+saved_style = (initial_saved_progress or {}).get("style")
 
 chart_index = chart_types.index(saved_chart) if saved_chart in chart_types else 0
 range_index = range_options.index(saved_range) if saved_range in range_options else 3
@@ -631,9 +672,31 @@ with mode_col:
         index=style_index,
     )
 
+# 現在選択中の設定に対応する保存進捗を取得。
+saved_progress, selected_slot_encoded = get_progress_from_registry(
+    browser_progress_registry,
+    selected_chart,
+    selected_range,
+    selected_question_style,
+)
+
+# URLの進捗が現在の選択と一致する場合は、URL側を優先する。
+if query_saved_progress and (
+    query_saved_progress.get("chart") == selected_chart
+    and query_saved_progress.get("range") == selected_range
+    and query_saved_progress.get("style") == selected_question_style
+):
+    if (
+        selected_range not in {"カスタムA", "カスタムB"}
+        or query_saved_progress.get("custom_sig", "")
+        == custom_definition_signature(selected_range)
+    ):
+        saved_progress = query_saved_progress
+        selected_slot_encoded = query_progress_value
+
 
 # =========================
-# 系統図を切り替えたらクイズ状態をリセット
+# 系統図・範囲・出題モードを切り替えたら、その設定専用の進捗へ切替
 # =========================
 
 if "selected_chart" not in st.session_state:
@@ -658,9 +721,17 @@ if (
     or st.session_state.selected_question_style != selected_question_style
     or st.session_state.selected_range != selected_range
 ):
+    # 以前のモードの保存は消さず、新しく選んだモード専用の進捗へ切り替える。
     st.session_state.selected_chart = selected_chart
     st.session_state.selected_question_style = selected_question_style
     st.session_state.selected_range = selected_range
+
+    slot_progress, slot_encoded = get_progress_from_registry(
+        browser_progress_registry,
+        selected_chart,
+        selected_range,
+        selected_question_style,
+    )
 
     st.session_state.mode = "normal"
     st.session_state.quiz_number = 0
@@ -673,19 +744,20 @@ if (
     st.session_state.run_chart = ""
     st.session_state.run_question_style = ""
     st.session_state.run_range = ""
-    st.session_state.run_seed = secrets.randbits(63)
     st.session_state.review_current_candidate = None
+    st.session_state.progress_restored_once = False
 
-    if "quiz_items" in st.session_state:
-        del st.session_state.quiz_items
+    if slot_progress and isinstance(slot_progress.get("seed"), int):
+        st.session_state.run_seed = slot_progress["seed"]
+        st.query_params[PROGRESS_PARAM] = slot_encoded
+    else:
+        st.session_state.run_seed = secrets.randbits(63)
+        if PROGRESS_PARAM in st.query_params:
+            del st.query_params[PROGRESS_PARAM]
 
-    if "two_questions" in st.session_state:
-        del st.session_state.two_questions
+    for state_key in ["quiz_items", "two_questions", "custom_questions"]:
+        st.session_state.pop(state_key, None)
 
-    if "custom_questions" in st.session_state:
-        del st.session_state.custom_questions
-
-    clear_saved_progress()
     st.rerun()
 
 
@@ -1301,15 +1373,38 @@ def persist_progress():
         "answer": bool(st.session_state.get("show_answer", False)),
         "finished": bool(st.session_state.get("finished_once", False)),
         "completed": st.session_state.get("completed_at"),
+        "custom_sig": custom_definition_signature(selected_range),
     }
     encoded = encode_progress(data)
     st.query_params[PROGRESS_PARAM] = encoded
-    write_progress_to_browser(encoded)
+
+    slot_key = make_progress_slot_key(
+        selected_chart,
+        selected_range,
+        selected_question_style,
+    )
+    updated_registry = {
+        "v": 1,
+        "last_slot": slot_key,
+        "slots": dict((browser_progress_registry or {}).get("slots", {})),
+    }
+    updated_registry["slots"][slot_key] = encoded
+    write_registry_to_browser(updated_registry)
 
 
 def reset_run_from_beginning():
-    """保存済みの進捗を捨てて、新しい1周を1問目から始める。"""
-    clear_saved_progress()
+    """現在選択中のモードだけを1問目からやり直す。他モードの進捗は残す。"""
+    if PROGRESS_PARAM in st.query_params:
+        del st.query_params[PROGRESS_PARAM]
+
+    updated_registry = remove_current_slot_from_registry(
+        browser_progress_registry,
+        selected_chart,
+        selected_range,
+        selected_question_style,
+    )
+    write_registry_to_browser(updated_registry)
+
     st.session_state.mode = "normal"
     st.session_state.run_seed = secrets.randbits(63)
     st.session_state.quiz_items = make_quiz_items()
