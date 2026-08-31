@@ -552,6 +552,14 @@ _registry_writer_digests_used = set()
 
 
 def write_registry_to_browser(registry):
+    # ブラウザ保存と同時に、現在のStreamlitセッション内でも最新版を保持する。
+    # モード変更直後はこのキャッシュから読み出すため、手動リロードが不要になる。
+    st.session_state.progress_registry_cache = {
+        "v": registry.get("v", 1),
+        "last_slot": registry.get("last_slot"),
+        "slots": dict(registry.get("slots", {})),
+    }
+
     if _progress_storage_component is None:
         return
 
@@ -617,13 +625,21 @@ def remove_current_slot_from_registry(registry, chart, range_value, style):
 # ---------------------------------------------------------
 # 起動時：まずブラウザの全モード進捗を読む
 # ---------------------------------------------------------
-browser_progress_registry, browser_storage_ready, browser_storage_available = (
+loaded_browser_progress_registry, browser_storage_ready, browser_storage_available = (
     load_browser_registry()
 )
 
 if not browser_storage_ready:
     st.caption("保存済みの進捗を確認しています…")
     st.stop()
+
+# ブラウザから読み込んだ全モード進捗は、最初の1回だけsession_stateへ取り込む。
+# 以後、問題を進めてlocalStorageへ保存するときはこのキャッシュも同時更新する。
+# これにより、モード切替時に手動リロードしなくても最新進捗を参照できる。
+if "progress_registry_cache" not in st.session_state:
+    st.session_state.progress_registry_cache = loaded_browser_progress_registry
+
+browser_progress_registry = st.session_state.progress_registry_cache
 
 # URLに有効な進捗があれば、今開いているモードとして最優先。
 query_progress_value = get_query_progress_value()
@@ -739,8 +755,13 @@ if (
     st.session_state.selected_question_style = selected_question_style
     st.session_state.selected_range = selected_range
 
+    current_registry = st.session_state.get(
+        "progress_registry_cache",
+        browser_progress_registry or {"v": 1, "last_slot": None, "slots": {}},
+    )
+
     slot_progress, slot_encoded = get_progress_from_registry(
-        browser_progress_registry,
+        current_registry,
         selected_chart,
         selected_range,
         selected_question_style,
@@ -1407,10 +1428,15 @@ def persist_progress():
         selected_range,
         selected_question_style,
     )
+    current_registry = st.session_state.get(
+        "progress_registry_cache",
+        browser_progress_registry or {"v": 1, "last_slot": None, "slots": {}},
+    )
+
     updated_registry = {
         "v": 1,
         "last_slot": slot_key,
-        "slots": dict((browser_progress_registry or {}).get("slots", {})),
+        "slots": dict((current_registry or {}).get("slots", {})),
     }
     updated_registry["slots"][slot_key] = encoded
     write_registry_to_browser(updated_registry)
@@ -1421,8 +1447,13 @@ def reset_run_from_beginning():
     if PROGRESS_PARAM in st.query_params:
         del st.query_params[PROGRESS_PARAM]
 
+    current_registry = st.session_state.get(
+        "progress_registry_cache",
+        browser_progress_registry or {"v": 1, "last_slot": None, "slots": {}},
+    )
+
     updated_registry = remove_current_slot_from_registry(
-        browser_progress_registry,
+        current_registry,
         selected_chart,
         selected_range,
         selected_question_style,
@@ -1791,6 +1822,22 @@ with left_col:
                 f'<span class="question-prompt">{prompt_text}</span>'
             )
 
+            save_info_col, save_button_col = st.columns([4, 1])
+
+            with save_info_col:
+                st.caption(
+                    "途中で終了しても、次回はこの続きから再開できます。"
+                )
+
+            with save_button_col:
+                if st.button(
+                    "ここまで保存",
+                    key="btn_manual_save_normal",
+                    use_container_width=True,
+                ):
+                    persist_progress()
+                    st.success("ここまでの進捗を保存しました。")
+
             show_question(question, hidden_part)
 
             if st.button("答えを見る", key="btn_answer"):
@@ -1912,6 +1959,22 @@ with left_col:
                 f" / {len(st.session_state.review_list)}</span>"
                 f'<span class="question-prompt">{prompt_text}</span>'
             )
+
+            save_info_col, save_button_col = st.columns([4, 1])
+
+            with save_info_col:
+                st.caption(
+                    "途中で終了しても、次回はこの続きから再開できます。"
+                )
+
+            with save_button_col:
+                if st.button(
+                    "ここまで保存",
+                    key="btn_manual_save_review",
+                    use_container_width=True,
+                ):
+                    persist_progress()
+                    st.success("ここまでの進捗を保存しました。")
 
             show_question(question, hidden_part)
             if st.button("答えを見る", key="btn_answer"):
