@@ -602,10 +602,7 @@ if _has_components_v2:
             const canvas = parentElement.querySelector("#handwriting-canvas");
             const clearButton = parentElement.querySelector("#clear-handwriting");
             const handwritingWrap = parentElement.querySelector(".handwriting-wrap");
-            const ctx = canvas.getContext("2d", {
-                alpha: false,
-                desynchronized: true,
-            });
+            const ctx = canvas.getContext("2d");
 
             // iPad SafariがApple Pencil操作をテキスト選択・長押しメニューとして
             // 解釈しないよう、手書きエリア内だけブラウザ標準動作を止める。
@@ -713,7 +710,6 @@ if _has_components_v2:
                 ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
                 ctx.lineCap = "round";
                 ctx.lineJoin = "round";
-                ctx.miterLimit = 2;
                 ctx.strokeStyle = "#111111";
                 ctx.lineWidth = 2.4;
 
@@ -742,63 +738,32 @@ if _has_components_v2:
 
                 ctx.beginPath();
                 ctx.moveTo(lastX, lastY);
-
-                // タップだけでも点が見えるように、ごく短い線を描く。
-                ctx.lineTo(lastX + 0.01, lastY + 0.01);
-                ctx.stroke();
             }
 
-            function drawSample(sample) {
-                const p = pointFromEvent(sample);
+            function pointerMove(event) {
+                if (!drawing) return;
+                event.preventDefault();
+
+                const p = pointFromEvent(event);
 
                 // Apple Pencilの筆圧が取得できる場合は少しだけ線幅へ反映。
-                if (sample.pointerType === "pen" && sample.pressure > 0) {
-                    ctx.lineWidth = 1.7 + sample.pressure * 2.2;
+                // 指・マウスでは一定幅にする。
+                if (event.pointerType === "pen" && event.pressure > 0) {
+                    ctx.lineWidth = 1.8 + event.pressure * 2.4;
                 } else {
                     ctx.lineWidth = 2.4;
                 }
 
-                // 直線で点を結ぶより、前の点との中点を使って滑らかにつなぐ。
-                const midX = (lastX + p.x) / 2;
-                const midY = (lastY + p.y) / 2;
-
-                ctx.quadraticCurveTo(lastX, lastY, midX, midY);
+                ctx.lineTo(p.x, p.y);
                 ctx.stroke();
 
                 lastX = p.x;
                 lastY = p.y;
             }
 
-
-            function pointerMove(event) {
-                if (!drawing) return;
-                event.preventDefault();
-
-                // Safari / Pointer Events が1イベント内に保持している
-                // 細かいPencil軌跡を全部拾う。未対応環境では通常eventにフォールバック。
-                let samples = [event];
-
-                if (typeof event.getCoalescedEvents === "function") {
-                    const coalesced = event.getCoalescedEvents();
-                    if (coalesced && coalesced.length > 0) {
-                        samples = coalesced;
-                    }
-                }
-
-                for (const sample of samples) {
-                    drawSample(sample);
-                }
-            }
-
             function pointerUp(event) {
                 if (!drawing) return;
                 event.preventDefault();
-
-                // 最後のイベント位置も取りこぼさず描く。
-                try {
-                    drawSample(event);
-                } catch (e) {}
-
                 drawing = false;
                 ctx.closePath();
                 saveCanvas();
