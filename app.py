@@ -528,7 +528,8 @@ if _has_components_v2:
         css=r"""
         .handwriting-wrap {
             width: 100%;
-            height: 100%;
+            height: calc(100% - 8px);
+            padding-bottom: 8px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
@@ -582,7 +583,7 @@ if _has_components_v2:
             display: block;
             width: 100%;
             flex: 1 1 auto;
-            min-height: 190px;
+            min-height: 0;
             border: 2px solid #777777;
             border-radius: 8px;
             background: #ffffff;
@@ -626,6 +627,7 @@ if _has_components_v2:
             let lastX = 0;
             let lastY = 0;
             let resizeObserver = null;
+            let hasCanvasBeenInitialized = false;
 
             function readStored() {
                 try {
@@ -694,15 +696,18 @@ if _has_components_v2:
             }
 
             function resizeCanvas() {
-                // サイズ変更前の現在画像を確保。
+                // 初回は未初期化の黒キャンバスを引き継がない。
+                // 2回目以降のリサイズだけ、現在画像を保持して描き直す。
                 let currentImage = null;
-                try {
-                    currentImage = canvas.toDataURL("image/png");
-                } catch (e) {}
+                if (hasCanvasBeenInitialized) {
+                    try {
+                        currentImage = canvas.toDataURL("image/png");
+                    } catch (e) {}
+                }
 
                 const rect = canvas.getBoundingClientRect();
                 const cssWidth = Math.max(rect.width, 1);
-                const cssHeight = Math.max(rect.height, 260);
+                const cssHeight = Math.max(rect.height, 1);
 
                 const newWidth = Math.round(cssWidth * dpr);
                 const newHeight = Math.round(cssHeight * dpr);
@@ -718,8 +723,16 @@ if _has_components_v2:
                 ctx.strokeStyle = "#111111";
                 ctx.lineWidth = 2.3;
 
-                const savedImage = readStored() || currentImage;
-                restoreImage(savedImage);
+                const savedImage = readStored();
+                if (savedImage) {
+                    restoreImage(savedImage);
+                } else if (currentImage) {
+                    restoreImage(currentImage);
+                } else {
+                    clearCanvas(false);
+                }
+
+                hasCanvasBeenInitialized = true;
             }
 
             function pointFromEvent(event) {
