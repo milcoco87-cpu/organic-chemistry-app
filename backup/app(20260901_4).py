@@ -622,7 +622,6 @@ if _has_components_v2:
             const dpr = Math.max(window.devicePixelRatio || 1, 1);
 
             let drawing = false;
-            let activePointerId = null;
             let lastX = 0;
             let lastY = 0;
             let resizeObserver = null;
@@ -732,31 +731,19 @@ if _has_components_v2:
 
             function pointerDown(event) {
                 event.preventDefault();
-
-                // 前のストロークが万一残っていても、必ずここで完全終了させる。
-                if (drawing) {
-                    drawing = false;
-                    activePointerId = null;
-                    ctx.closePath();
-                }
-
-                activePointerId = event.pointerId;
-
                 try {
                     canvas.setPointerCapture(event.pointerId);
                 } catch (e) {}
 
                 const p = pointFromEvent(event);
-
                 drawing = true;
                 lastX = p.x;
                 lastY = p.y;
 
-                // Pencilを置くたびに必ず新しいストロークを開始する。
                 ctx.beginPath();
                 ctx.moveTo(lastX, lastY);
 
-                // タップだけでも点が残るよう、ごく短い線を描く。
+                // タップだけでも点が見えるように、ごく短い線を描く。
                 ctx.lineTo(lastX + 0.01, lastY + 0.01);
                 ctx.stroke();
             }
@@ -785,8 +772,6 @@ if _has_components_v2:
 
             function pointerMove(event) {
                 if (!drawing) return;
-                if (activePointerId !== null && event.pointerId !== activePointerId) return;
-
                 event.preventDefault();
 
                 // Safari / Pointer Events が1イベント内に保持している
@@ -805,50 +790,18 @@ if _has_components_v2:
                 }
             }
 
-            function finishStroke(event, drawLastPoint = true) {
+            function pointerUp(event) {
                 if (!drawing) return;
-
-                if (
-                    activePointerId !== null
-                    && event.pointerId !== undefined
-                    && event.pointerId !== activePointerId
-                ) {
-                    return;
-                }
-
                 event.preventDefault();
 
-                if (drawLastPoint) {
-                    try {
-                        drawSample(event);
-                    } catch (e) {}
-                }
+                // 最後のイベント位置も取りこぼさず描く。
+                try {
+                    drawSample(event);
+                } catch (e) {}
 
                 drawing = false;
                 ctx.closePath();
-
-                // iPad Safari任せにせず、Pencilのpointer captureを明示的に解放。
-                if (activePointerId !== null) {
-                    try {
-                        if (canvas.hasPointerCapture(activePointerId)) {
-                            canvas.releasePointerCapture(activePointerId);
-                        }
-                    } catch (e) {}
-                }
-
-                activePointerId = null;
                 saveCanvas();
-            }
-
-
-            function pointerUp(event) {
-                finishStroke(event, true);
-            }
-
-
-            function pointerCancel(event) {
-                // cancel時は余計な終端線を描かず終了だけする。
-                finishStroke(event, false);
             }
 
             clearStoredIfNewQuestion();
@@ -864,10 +817,10 @@ if _has_components_v2:
             canvas.addEventListener("pointerdown", pointerDown, { passive: false });
             canvas.addEventListener("pointermove", pointerMove, { passive: false });
             canvas.addEventListener("pointerup", pointerUp, { passive: false });
-            canvas.addEventListener("pointercancel", pointerCancel, { passive: false });
-
-            // pointerleaveではストローク終了させない。
-            // Apple Pencilのhover/境界挙動をSafariがpointerleaveとして送る場合があるため。
+            canvas.addEventListener("pointercancel", pointerUp, { passive: false });
+            canvas.addEventListener("pointerleave", (event) => {
+                if (drawing && event.buttons === 0) pointerUp(event);
+            }, { passive: false });
 
             clearButton.onclick = () => {
                 clearCanvas(true);
@@ -880,7 +833,7 @@ if _has_components_v2:
                 canvas.removeEventListener("pointerdown", pointerDown);
                 canvas.removeEventListener("pointermove", pointerMove);
                 canvas.removeEventListener("pointerup", pointerUp);
-                canvas.removeEventListener("pointercancel", pointerCancel);
+                canvas.removeEventListener("pointercancel", pointerUp);
 
                 handwritingWrap.removeEventListener("selectstart", preventSelection);
                 handwritingWrap.removeEventListener("dragstart", preventSelection);
