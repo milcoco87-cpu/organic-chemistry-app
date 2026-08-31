@@ -627,6 +627,11 @@ if _has_components_v2:
             let lastY = 0;
             let resizeObserver = null;
 
+            // Apple Pencilを使っている間は、手のひら・指(touch)を無視する。
+            // Pencilを離して少し経てば、再び指でも書ける。
+            let lastPenActivityAt = 0;
+            const PALM_REJECTION_MS = 900;
+
             function readStored() {
                 try {
                     const raw = window.sessionStorage.getItem(storageKey);
@@ -722,6 +727,38 @@ if _has_components_v2:
                 restoreImage(savedImage);
             }
 
+            function shouldIgnoreTouch(event) {
+                if (event.pointerType !== "touch") {
+                    return false;
+                }
+
+                const now = performance.now();
+
+                // Pencil操作直後はtouchを全部無視。
+                if (now - lastPenActivityAt < PALM_REJECTION_MS) {
+                    return true;
+                }
+
+                // 手のひらは指先より接触面積が大きいことが多いので、
+                // 大きなtouchは常に無視する。
+                const contactWidth = Number(event.width || 0);
+                const contactHeight = Number(event.height || 0);
+
+                if (contactWidth >= 18 || contactHeight >= 18) {
+                    return true;
+                }
+
+                return false;
+            }
+
+
+            function notePenActivity(event) {
+                if (event.pointerType === "pen") {
+                    lastPenActivityAt = performance.now();
+                }
+            }
+
+
             function pointFromEvent(event) {
                 const rect = canvas.getBoundingClientRect();
                 return {
@@ -731,6 +768,13 @@ if _has_components_v2:
             }
 
             function pointerDown(event) {
+                notePenActivity(event);
+
+                if (shouldIgnoreTouch(event)) {
+                    event.preventDefault();
+                    return;
+                }
+
                 event.preventDefault();
 
                 // 前のストロークが万一残っていても、必ずここで完全終了させる。
@@ -776,6 +820,13 @@ if _has_components_v2:
 
 
             function pointerMove(event) {
+                notePenActivity(event);
+
+                if (shouldIgnoreTouch(event)) {
+                    event.preventDefault();
+                    return;
+                }
+
                 if (!drawing) return;
                 if (activePointerId !== null && event.pointerId !== activePointerId) return;
 
@@ -796,6 +847,13 @@ if _has_components_v2:
             }
 
             function finishStroke(event, drawLastPoint = true) {
+                notePenActivity(event);
+
+                if (shouldIgnoreTouch(event)) {
+                    event.preventDefault();
+                    return;
+                }
+
                 if (!drawing) return;
 
                 if (
@@ -855,6 +913,7 @@ if _has_components_v2:
             canvas.addEventListener("pointermove", pointerMove, { passive: false });
             canvas.addEventListener("pointerup", pointerUp, { passive: false });
             canvas.addEventListener("pointercancel", pointerCancel, { passive: false });
+            canvas.addEventListener("pointerenter", notePenActivity, { passive: true });
 
             // pointerleaveではストローク終了させない。
             // Apple Pencilのhover/境界挙動をSafariがpointerleaveとして送る場合があるため。
@@ -871,6 +930,7 @@ if _has_components_v2:
                 canvas.removeEventListener("pointermove", pointerMove);
                 canvas.removeEventListener("pointerup", pointerUp);
                 canvas.removeEventListener("pointercancel", pointerCancel);
+                canvas.removeEventListener("pointerenter", notePenActivity);
 
                 handwritingWrap.removeEventListener("selectstart", preventSelection);
                 handwritingWrap.removeEventListener("dragstart", preventSelection);
