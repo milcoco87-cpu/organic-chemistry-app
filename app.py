@@ -521,7 +521,7 @@ if _has_components_v2:
                 <span class="handwriting-title">【手書きメモ】</span>
                 <button id="clear-handwriting" type="button">手書きを消す</button>
             </div>
-            <div class="handwriting-caption">Apple Pencil または指で自由に書けます。</div>
+            <div class="handwriting-caption">指で自由に書けます。Apple Pencilでも入力できます。</div>
             <canvas id="handwriting-canvas"></canvas>
         </div>
         """,
@@ -582,7 +582,7 @@ if _has_components_v2:
             display: block;
             width: 100%;
             flex: 1 1 auto;
-            min-height: 260px;
+            min-height: 190px;
             border: 2px solid #777777;
             border-radius: 8px;
             background: #ffffff;
@@ -895,7 +895,7 @@ def show_handwriting_space(question_token):
         data={"questionToken": question_token},
         key="handwriting_canvas",
         width="stretch",
-        height=405,
+        height=450,
     )
 
 
@@ -2460,7 +2460,7 @@ with left_col:
 with right_col:
     # 上半分：復習リスト
     with st.container(
-        height=380,
+        height=320,
         border=True,
         key="review_scroll",
     ):
@@ -2468,7 +2468,7 @@ with right_col:
 
     # 下半分：現在の問題だけに使う手書きスペース
     with st.container(
-        height=455,
+        height=560,
         border=True,
         key="handwriting_area",
     ):
