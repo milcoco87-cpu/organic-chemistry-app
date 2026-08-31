@@ -623,8 +623,6 @@ if _has_components_v2:
 
             let drawing = false;
             let activePointerId = null;
-            let activePointerType = null;
-            let penIsDown = false;
             let lastX = 0;
             let lastY = 0;
             let resizeObserver = null;
@@ -724,25 +722,6 @@ if _has_components_v2:
                 restoreImage(savedImage);
             }
 
-            function shouldIgnoreTouch(event) {
-                if (event.pointerType !== "touch") {
-                    return false;
-                }
-
-                // Pencilが実際に画面へ接触している間は、
-                // 同時に入ってくる手のひら/指のtouchを無視する。
-                if (penIsDown) {
-                    return true;
-                }
-
-                // 指書きは残したいので、接触面積がかなり大きいtouchだけ手のひら扱い。
-                const contactWidth = Number(event.width || 0);
-                const contactHeight = Number(event.height || 0);
-
-                return contactWidth >= 35 || contactHeight >= 35;
-            }
-
-
             function pointFromEvent(event) {
                 const rect = canvas.getBoundingClientRect();
                 return {
@@ -754,31 +733,18 @@ if _has_components_v2:
             function pointerDown(event) {
                 event.preventDefault();
 
-                // Pencilが来たら最優先。
-                // 先に手のひらtouchが始まっていても、そのストロークを即終了する。
-                if (event.pointerType === "pen") {
-                    penIsDown = true;
-
-                    if (drawing && activePointerType === "touch") {
-                        drawing = false;
-                        activePointerId = null;
-                        activePointerType = null;
-                        ctx.closePath();
-                    }
-                }
-
-                if (shouldIgnoreTouch(event)) {
-                    return;
-                }
-
-                // 前のストローク情報を一切持ち越さない。
+                // 前のストロークが万一残っていても、必ずここで完全終了させる。
                 if (drawing) {
                     drawing = false;
+                    activePointerId = null;
                     ctx.closePath();
                 }
 
                 activePointerId = event.pointerId;
-                activePointerType = event.pointerType;
+
+                try {
+                    canvas.setPointerCapture(event.pointerId);
+                } catch (e) {}
 
                 const p = pointFromEvent(event);
 
@@ -786,7 +752,7 @@ if _has_components_v2:
                 lastX = p.x;
                 lastY = p.y;
 
-                // 毎回完全に新しいpathとして開始。
+                // Pencilを置くたびに必ず新しいストロークを開始する。
                 ctx.beginPath();
                 ctx.moveTo(lastX, lastY);
 
@@ -810,11 +776,6 @@ if _has_components_v2:
 
 
             function pointerMove(event) {
-                if (shouldIgnoreTouch(event)) {
-                    event.preventDefault();
-                    return;
-                }
-
                 if (!drawing) return;
                 if (activePointerId !== null && event.pointerId !== activePointerId) return;
 
@@ -835,15 +796,6 @@ if _has_components_v2:
             }
 
             function finishStroke(event, drawLastPoint = true) {
-                if (event.pointerType === "pen") {
-                    penIsDown = false;
-                }
-
-                if (shouldIgnoreTouch(event)) {
-                    event.preventDefault();
-                    return;
-                }
-
                 if (!drawing) return;
 
                 if (
@@ -865,10 +817,16 @@ if _has_components_v2:
                 drawing = false;
                 ctx.closePath();
 
-                // pointer captureは使わず、次のストロークを完全に独立させる。
-                activePointerId = null;
-                activePointerType = null;
+                // iPad Safari任せにせず、Pencilのpointer captureを明示的に解放。
+                if (activePointerId !== null) {
+                    try {
+                        if (canvas.hasPointerCapture(activePointerId)) {
+                            canvas.releasePointerCapture(activePointerId);
+                        }
+                    } catch (e) {}
+                }
 
+                activePointerId = null;
                 saveCanvas();
             }
 
@@ -879,10 +837,6 @@ if _has_components_v2:
 
 
             function pointerCancel(event) {
-                if (event.pointerType === "pen") {
-                    penIsDown = false;
-                }
-
                 // cancel時は余計な終端線を描かず終了だけする。
                 finishStroke(event, false);
             }
@@ -903,7 +857,7 @@ if _has_components_v2:
             canvas.addEventListener("pointercancel", pointerCancel, { passive: false });
 
             // pointerleaveではストローク終了させない。
-            // ストローク終了はpointerup / pointercancelだけで管理する。
+            // Apple Pencilのhover/境界挙動をSafariがpointerleaveとして送る場合があるため。
 
             clearButton.onclick = () => {
                 clearCanvas(true);
