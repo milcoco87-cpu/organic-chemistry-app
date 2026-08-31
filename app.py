@@ -545,6 +545,12 @@ def load_browser_registry():
     return registry, True, bool(result.available)
 
 
+# 同じStreamlit実行内で、同一内容のlocalStorage書き込みを
+# 複数回マウントしないための一時セット。
+# モジュールはrerunごとに再実行されるので、次の画面更新では自然に空になる。
+_registry_writer_digests_used = set()
+
+
 def write_registry_to_browser(registry):
     if _progress_storage_component is None:
         return
@@ -557,6 +563,13 @@ def write_registry_to_browser(registry):
 
     import hashlib
     digest = hashlib.sha1(registry_text.encode("utf-8")).hexdigest()[:16]
+
+    # 同じ1回の画面実行中に、まったく同じ進捗を再保存しようとした場合は
+    # StreamlitDuplicateElementKey を避けるため2回目以降をスキップする。
+    if digest in _registry_writer_digests_used:
+        return
+
+    _registry_writer_digests_used.add(digest)
 
     _progress_storage_component(
         data={
