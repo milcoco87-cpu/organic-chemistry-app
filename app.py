@@ -533,6 +533,18 @@ if _has_components_v2:
             display: flex;
             flex-direction: column;
             font-family: var(--st-font);
+
+            /* iPad SafariでApple Pencil操作を文字選択と誤認させない */
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: none;
+        }
+
+        .handwriting-wrap * {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
 
         .handwriting-head {
@@ -575,7 +587,12 @@ if _has_components_v2:
             border-radius: 8px;
             background: #ffffff;
             box-sizing: border-box;
+
+            /* Pencil/指のジェスチャーをキャンバス専用にする */
             touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
             cursor: crosshair;
         }
         """,
@@ -584,7 +601,18 @@ if _has_components_v2:
             const { parentElement, data } = component;
             const canvas = parentElement.querySelector("#handwriting-canvas");
             const clearButton = parentElement.querySelector("#clear-handwriting");
+            const handwritingWrap = parentElement.querySelector(".handwriting-wrap");
             const ctx = canvas.getContext("2d");
+
+            // iPad SafariがApple Pencil操作をテキスト選択・長押しメニューとして
+            // 解釈しないよう、手書きエリア内だけブラウザ標準動作を止める。
+            const preventSelection = (event) => {
+                event.preventDefault();
+            };
+
+            handwritingWrap.addEventListener("selectstart", preventSelection);
+            handwritingWrap.addEventListener("dragstart", preventSelection);
+            handwritingWrap.addEventListener("contextmenu", preventSelection);
 
             const storageKey = "organic_quiz_handwriting_current_v1";
             const questionToken = String(data?.questionToken ?? "");
@@ -771,6 +799,11 @@ if _has_components_v2:
                 canvas.removeEventListener("pointermove", pointerMove);
                 canvas.removeEventListener("pointerup", pointerUp);
                 canvas.removeEventListener("pointercancel", pointerUp);
+
+                handwritingWrap.removeEventListener("selectstart", preventSelection);
+                handwritingWrap.removeEventListener("dragstart", preventSelection);
+                handwritingWrap.removeEventListener("contextmenu", preventSelection);
+
                 if (resizeObserver) resizeObserver.disconnect();
             };
         }
