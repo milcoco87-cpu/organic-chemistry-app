@@ -26,7 +26,7 @@ rxn_024,cmp_020,cmp_021,,付加重合,,False,False
 rxn_025,cmp_021,cmp_052,NaOH,けん化,,False,False
 rxn_026,cmp_052,cmp_053,HCHO・100X%アセタール化,アセタール化,,False,False
 rxn_027,cmp_019,cmp_014,H2O・HgSO4触媒,付加,,False,False
-rxn_028,cmp_014,cmp_010,,原子の組み替え,,False,False
+rxn_028,cmp_014,cmp_010,,ビニルアルコールは不安定なため即座に原子の組み替えが起こる,,False,False
 rxn_029,cmp_019,cmp_022,赤熱したFe触媒,三分子重合,,False,False
 rxn_030,cmp_041,cmp_019,H2O,加水分解,,False,False
 rxn_031,cmp_018,cmp_010,,還元,,False,False
