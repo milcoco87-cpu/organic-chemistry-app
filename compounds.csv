@@ -16,7 +16,7 @@ cmp_009,"1,2-ジクロロエタン","1,2-dichloroethane",C2H4Cl2,"1,2-dichloroet
 cmp_011,塩化ビニル,vinyl chloride,C2H3Cl,vinyl chloride.png,,1.0
 cmp_012,ポリ塩化ビニル,polyvinyl chloride,(C2H3Cl)n,polyvinyl chloride.png,,1.0
 cmp_013,酢酸エチル,ethyl acetate,CH3COOC2H5,ethyl acetate.png,,2.0
-cmp_014,ビニルアルコール,vinyl alcohol,(C2H3OH)n,vinyl alcohol.png,不安定なため存在できない。エノール型,2.0
+cmp_014,※ビニルアルコール(不安定),vinyl alcohol,(C2H3OH)n,vinyl alcohol.png,不安定なため存在できない。エノール型,2.0
 cmp_015,アクリロニトリル,acrylonitrile,C2H3CN,acrylonitrile.png,,1.0
 cmp_016,ポリアクリロニトリル,polyacrylonitrile,(C2H3CN)n,polyacrylonitrile.png,,1.0
 cmp_017,酢酸ナトリウム,sodium acetate,CH3COONa,sodium acetate.png,OとNaは結合線(価標)で結ばない,1.0
